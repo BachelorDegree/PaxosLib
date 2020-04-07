@@ -1,0 +1,12 @@
+syntax = "proto3";
+package paxoslib.config;
+message Peer{
+  string ip = 1;
+  uint32 port = 2;
+  uint64 id = 3;
+}
+message Config{
+  repeated Peer peers = 1;
+  uint64 node_id = 2;
+  uint32 port = 3;
+}

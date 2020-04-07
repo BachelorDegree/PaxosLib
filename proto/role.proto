@@ -1,0 +1,8 @@
+syntax = "proto3";
+package paxoslib;
+enum RoleType{
+  ROLE_TYPE_NONE = 0;
+  ROLE_TYPE_PROPOSER = 1;
+  ROLE_TYPE_ACCEPTER = 2;
+  ROLE_TYPE_LEARNER = 3;
+}

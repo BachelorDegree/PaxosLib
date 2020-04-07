@@ -1,0 +1,12 @@
+syntax = "proto3";
+package paxoslib;
+enum BroadcastReceiverType{
+  BORADCAST_RECEIVER_TYPE_PROPOSER = 0;
+  BORADCAST_RECEIVER_TYPE_ACCEPTER = 1;
+  BORADCAST_RECEIVER_TYPE_LEARNER = 2;
+}
+enum BroadcastType{
+  BROAD_CAST_TYPE_SELF_THEN_OTHERS = 0;
+  BROAD_CAST_TYPE_ALL = 1;
+  BROAD_CAST_TYPE_ONLY_OTHERS = 2;
+}
