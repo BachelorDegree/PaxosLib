@@ -15,9 +15,9 @@ class Instance::InstanceImpl : public network::ReceiveEventListener
 {
 
 public:
-  InstanceImpl(Instance *pInstance, const paxoslib::config::Config &oConfig, network::Network *pNetwork) : m_pNetwork(pNetwork), m_oProposer(pInstance), m_oAccepter(pInstance)
+  InstanceImpl(Instance *pInstance, const paxoslib::config::Config &oConfig, std::shared_ptr<network::Network> pNetwork) : m_pNetwork(pNetwork), m_oProposer(pInstance), m_oAccepter(pInstance)
   {
-    ddwNodeId = oConfig.node_id();
+    m_ddwNodeId = oConfig.node_id();
     for (const auto &oPeer : oConfig.peers())
     {
       if (oPeer.id() != oConfig.node_id())
@@ -25,7 +25,7 @@ public:
         auto pPeer = std::make_shared<network::Peer>(oPeer.id(), this, pNetwork);
         pPeer->AddRoleType(RoleType::ROLE_TYPE_ACCEPTER);
         pPeer->AddRoleType(RoleType::ROLE_TYPE_PROPOSER);
-        pNetwork->AddPeer(pPeer.get());
+        pNetwork->AddPeer(pPeer);
         pNetwork->MakeChannelForPeer(oPeer.id(), oPeer.ip(), oPeer.port());
         m_vecPeers.push_back(pPeer);
       }
@@ -64,7 +64,7 @@ public:
   }
   uint64_t GetInstanceId() const
   {
-    return this->ddwInstanceId;
+    return this->m_ddwInstanceId;
   }
   const Proposal &GetProposal() const
   {
@@ -72,34 +72,29 @@ public:
   }
   uint64_t GetNodeId() const
   {
-    return this->ddwNodeId;
+    return this->m_ddwNodeId;
   }
   int Propose(const std::string &value)
   {
     *m_oProposal.mutable_value() = value;
-    ddwInstanceId = 1;
+    m_ddwInstanceId = 1;
     m_oProposer.Propose(m_oProposal);
   }
-  std::vector<network::Peer *> GetPeers() const
+  std::vector<std::shared_ptr<network::Peer>> GetPeers() const
   {
-    std::vector<network::Peer *> ret;
-    for (auto pPeer : m_vecPeers)
-    {
-      ret.push_back(pPeer.get());
-    }
-    return ret;
+    return m_vecPeers;
   }
 
 private:
-  uint64_t ddwInstanceId;
-  uint64_t ddwNodeId;
+  uint64_t m_ddwInstanceId;
+  uint64_t m_ddwNodeId;
   Proposal m_oProposal;
   std::vector<std::shared_ptr<network::Peer>> m_vecPeers;
-  network::Network *m_pNetwork;
+  std::shared_ptr<network::Network> m_pNetwork;
   role::Proposer m_oProposer;
   role::Accepter m_oAccepter;
 };
-Instance::Instance(const paxoslib::config::Config &oConfig, network::Network *pNetwork)
+Instance::Instance(const paxoslib::config::Config &oConfig, std::shared_ptr<network::Network> pNetwork)
 {
   pImpl = new InstanceImpl(this, oConfig, pNetwork);
 }
@@ -107,7 +102,7 @@ uint64_t Instance::GetInstanceId() const
 {
   return this->pImpl->GetInstanceId();
 }
-std::vector<network::Peer *> Instance::GetPeers() const
+std::vector<std::shared_ptr<network::Peer>> Instance::GetPeers() const
 {
   return this->pImpl->GetPeers();
 }
@@ -116,5 +111,12 @@ uint64_t Instance::GetNodeId() const { return this->pImpl->GetNodeId(); }
 int Instance::Propose(const std::string &value)
 {
   return this->pImpl->Propose(value);
+}
+Instance::~Instance()
+{
+  if (this->pImpl)
+  {
+    delete pImpl;
+  }
 }
 }; // namespace paxoslib

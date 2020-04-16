@@ -1,19 +1,17 @@
 #include <thread>
 #include "paxoslib/peer.hpp"
 #include "paxoslib/network.hpp"
+#include "sys/eventfd.h"
 namespace paxoslib::network
 {
-Peer::Peer(uint64_t peer_id, ReceiveEventListener *pEventListner, Network *pNetwork)
+Peer::Peer(uint64_t peer_id, ReceiveEventListener *pEventListner, std::shared_ptr<Network> pNetwork)
 {
   m_pEventListner = pEventListner;
   m_peer_id = peer_id;
   m_pNetwork = pNetwork;
-  pipe(m_receive_fd);
+  m_event_fd = eventfd(0, EFD_SEMAPHORE);
   m_oReceiveEventWorkerThread = std::thread([&]() {
     this->ReceiveEventWorker();
-  });
-  m_oSendWorkerThread = std::thread([&]() {
-    this->SendWorker();
   });
 }
 uint32_t Peer::GetPeerID() const
@@ -35,61 +33,40 @@ uint64_t Peer::GetRoleTypesMask() const
 }
 void Peer::ReceiveEventWorker()
 {
+  ReceiveQueueItem oItem;
   while (true)
   {
-    WaitFd(m_receive_fd);
-    while (m_ReceiveQueue.empty() == false)
+    WaitEvent(m_event_fd);
+    while (m_ReceiveQueue.pop_front(oItem))
     {
-      ReceiveQueueItem oItem = std::move(m_ReceiveQueue.front());
       m_pEventListner->OnMessage(oItem.message);
-      m_ReceiveQueue.pop();
     }
   }
 }
-void Peer::EnqueueSendMessage(const Message &oMessage)
+void Peer::SendMessage(const Message &oMessage)
 {
-  SendQueueItem oItem;
-  oItem.message = oMessage;
-  if (oMessage.from_node_id() == 1)
-  {
-    std::cout << "send to " << this->m_peer_id << " message:" << oMessage.ShortDebugString() << std::endl;
-  }
-  m_SendQueue.push(std::move(oItem));
+  this->m_pNetwork->SendMessageToPeer(m_peer_id, oMessage);
 }
 void Peer::EnqueueReceiveMessage(const Message &oMessage)
 {
   ReceiveQueueItem oItem;
   oItem.message = oMessage;
-  m_ReceiveQueue.push(std::move(oItem));
-  EmitFd(m_receive_fd);
+  m_ReceiveQueue.push_back(std::move(oItem));
+  EmitEvent(m_event_fd);
 }
 void Peer::AddRoleType(RoleType oType)
 {
   this->m_setRoleTypes.insert(oType);
 }
-void Peer::SendWorker()
+void Peer::EmitEvent(int fd)
 {
-  while (true)
-  {
-    if (m_SendQueue.size() == 0)
-    {
-      poll(0, 0, 10);
-      continue;
-    }
-    SendQueueItem oItem = std::move(m_SendQueue.front());
-    m_SendQueue.pop();
-    this->m_pNetwork->SendMessageToPeer(m_peer_id, oItem.message);
-  }
-}
-void Peer::EmitFd(int *fds)
-{
-  char a;
+  uint64_t a;
   a = 1;
-  write(fds[0], &a, sizeof(a));
+  write(fd, &a, sizeof(a));
 }
-void Peer::WaitFd(int *fds)
+void Peer::WaitEvent(int fd)
 {
-  char a;
-  read(fds[1], &a, sizeof(a));
+  uint64_t a;
+  read(fd, &a, sizeof(a));
 }
 }; // namespace paxoslib::network

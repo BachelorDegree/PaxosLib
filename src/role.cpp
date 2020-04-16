@@ -28,7 +28,7 @@ void Role::Broadcast(BroadcastReceiverType oReceiverType, BroadcastType oBroadca
     if (pPeer->GetRoleTypesMask() & mask)
     {
       oNewMessage.set_to_node_id(pPeer->GetPeerID());
-      pPeer->EnqueueSendMessage(oNewMessage);
+      pPeer->SendMessage(oNewMessage);
     }
   }
   if (oBroadcastType == BroadcastType::BROAD_CAST_TYPE_ALL)
@@ -46,7 +46,7 @@ void Role::SendMessageTo(uint32_t dwNodeId, const Message &oMessage)
     {
       oNewMessage.set_from_node_id(this->m_pInstance->GetNodeId());
       oNewMessage.set_to_node_id(dwNodeId);
-      pPeer->EnqueueSendMessage(oNewMessage);
+      pPeer->SendMessage(oNewMessage);
     }
   }
 }

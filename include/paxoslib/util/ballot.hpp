@@ -1,7 +1,6 @@
 #pragma once
 #include <set>
 #include <cstdint>
-#include "paxoslib/util/ballot.hpp"
 namespace paxoslib
 {
 namespace util

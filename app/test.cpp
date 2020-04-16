@@ -31,17 +31,17 @@ int main()
   auto oConfig3 = oConfig;
   oConfig1.set_node_id(1);
   oConfig1.set_port(10001);
-  paxoslib::network::Network network1{oConfig1};
+  auto network1 = std::make_shared<paxoslib::network::Network>(oConfig1);
   oConfig2.set_node_id(2);
   oConfig2.set_port(10002);
-  paxoslib::network::Network network2{oConfig2};
+  auto network2 = std::make_shared<paxoslib::network::Network>(oConfig2);
   oConfig3.set_node_id(3);
   oConfig3.set_port(10003);
-  paxoslib::network::Network network3{oConfig3};
+  auto network3 = std::make_shared<paxoslib::network::Network>(oConfig3);
   sleep(1);
-  paxoslib::Instance oInstance1{oConfig1, &network1};
-  paxoslib::Instance oInstance2{oConfig2, &network2};
-  paxoslib::Instance oInstance3{oConfig3, &network3};
+  paxoslib::Instance oInstance1{oConfig1, network1};
+  paxoslib::Instance oInstance2{oConfig2, network2};
+  paxoslib::Instance oInstance3{oConfig3, network3};
   sleep(1);
   oInstance1.Propose("test");
   while (true)

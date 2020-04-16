@@ -13,6 +13,7 @@
 #include "paxoslib/proto/message.pb.h"
 #include "paxoslib/proto/network.pb.h"
 #include "paxoslib/proto/role.pb.h"
+#include "paxoslib/util/lfqueue.hpp"
 namespace paxoslib::network
 {
 class Network;
@@ -20,39 +21,34 @@ class ReceiveEventListener
 {
 public:
   virtual void OnMessage(const Message &oMessage) = 0;
+  virtual ~ReceiveEventListener(){};
 };
 class Peer
 {
 public:
-  struct SendQueueItem
-  {
-    Message message;
-  };
   struct ReceiveQueueItem
   {
     Message message;
   };
-  Peer(uint64_t peer_id, ReceiveEventListener *pEventListner, Network *pNetwork);
+  Peer(uint64_t peer_id, ReceiveEventListener *pEventListner, std::shared_ptr<Network> pNetwork);
   uint32_t GetPeerID() const;
   const std::set<RoleType> &GetRoleTypes() const;
   void AddRoleType(RoleType);
   uint64_t GetRoleTypesMask() const;
   void ReceiveEventWorker();
-  void EnqueueSendMessage(const Message &oMessage);
+  void SendMessage(const Message &oMessage);
   void EnqueueReceiveMessage(const Message &oMessage);
-  void SendWorker();
 
 private:
-  void EmitFd(int *fds);
-  void WaitFd(int *fds);
+  void EmitEvent(int fd);
+  void WaitEvent(int fd);
   int m_fd;
-  int m_receive_fd[2];
+  int m_event_fd;
   uint64_t m_peer_id;
-  std::queue<SendQueueItem> m_SendQueue;
-  std::queue<ReceiveQueueItem> m_ReceiveQueue;
+  util::LFQueue<ReceiveQueueItem> m_ReceiveQueue;
   std::set<RoleType> m_setRoleTypes;
   ReceiveEventListener *m_pEventListner;
-  Network *m_pNetwork;
+  std::shared_ptr<Network> m_pNetwork;
   std::thread m_oReceiveEventWorkerThread;
   std::thread m_oSendWorkerThread;
 };
