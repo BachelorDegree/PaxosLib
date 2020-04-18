@@ -38,14 +38,11 @@ int main()
   oConfig3.set_node_id(3);
   oConfig3.set_port(10003);
   auto network3 = std::make_shared<paxoslib::network::Network>(oConfig3);
-  sleep(1);
+  //sleep(1);
   paxoslib::Instance oInstance1{oConfig1, network1};
   paxoslib::Instance oInstance2{oConfig2, network2};
   paxoslib::Instance oInstance3{oConfig3, network3};
-  sleep(1);
+  //sleep(1);
   oInstance1.Propose("test");
-  while (true)
-  {
-    sleep(1);
-  }
+  sleep(5);
 }

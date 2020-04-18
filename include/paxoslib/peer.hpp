@@ -10,6 +10,7 @@
 #include <map>
 #include <set>
 #include <thread>
+#include "paxoslib/receiveeventlistner.hpp"
 #include "paxoslib/proto/message.pb.h"
 #include "paxoslib/proto/network.pb.h"
 #include "paxoslib/proto/role.pb.h"
@@ -17,12 +18,6 @@
 namespace paxoslib::network
 {
 class Network;
-class ReceiveEventListener
-{
-public:
-  virtual void OnMessage(const Message &oMessage) = 0;
-  virtual ~ReceiveEventListener(){};
-};
 class Peer
 {
 public:

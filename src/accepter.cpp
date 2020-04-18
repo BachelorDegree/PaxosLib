@@ -1,3 +1,4 @@
+#include <spdlog/spdlog.h>
 #include "paxoslib/role/accepter.hpp"
 namespace paxoslib::role
 {
@@ -69,7 +70,7 @@ int Accepter::OnAccept(const Message &oMessage)
     this->ReplyRejectAccept(oMessage);
   }
 }
-void Accepter::OnMessage(const Message &oMessage)
+int Accepter::OnReceiveMessage(const Message &oMessage)
 {
   switch (oMessage.type())
   {

@@ -8,7 +8,9 @@ public:
   Accepter(Instance *pInstance);
   int OnPrepare(const Message &oMessage);
   int OnAccept(const Message &oMessage);
-  virtual void OnMessage(const Message &oMessage);
+
+protected:
+  virtual int OnReceiveMessage(const Message &oMessage);
 
 private:
   void ReplyPromised(const Message &oMessage);

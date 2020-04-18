@@ -1,5 +1,6 @@
 #pragma once
 #include <iostream>
+#include <spdlog/spdlog.h>
 #include "paxoslib/network.hpp"
 #include "paxoslib/channel.hpp"
 #include "paxoslib/peer.hpp"
@@ -12,21 +13,51 @@
 #endif
 namespace paxoslib::network
 {
-Channel::Channel(std::weak_ptr<Network> pNetwork, int fd) : m_fd(fd)
+void Channel::EnqueueSendMessage(std::unique_ptr<char[]> pBuffer, uint32_t size)
 {
-  m_pNetwork = pNetwork;
-  m_bHealthy = false;
-  m_ReceiveState.state = 0;
-  m_SendState.state = 0;
+  QueueItem oItem;
+  oItem.pBuffer = std::move(pBuffer);
+  oItem.size = size;
+  std::vector<QueueItem> vec;
+  m_SendQueue.push_back(std::move(oItem));
 }
-int Channel::GetFd() const
+Channel::Channel(std::weak_ptr<Network> pNetwork, int fd) : m_pNetwork(pNetwork), m_fd(fd)
 {
-  return m_fd;
 }
 Channel::~Channel()
 {
 }
-void Channel::OnReadable()
+
+ChannelSelf::ChannelSelf(std::weak_ptr<Network> pNetwork, int fd, uint64_t peer_id) : Channel(pNetwork, fd), m_peer_id(peer_id) {}
+void ChannelSelf::OnDisconnect() {}
+void ChannelSelf::OnWritableOrTaskArrive()
+{
+  this->OnReadable();
+}
+void ChannelSelf::OnReadable()
+{
+  QueueItem oItem;
+  if (auto pNetwork = m_pNetwork.lock())
+  {
+    while (m_SendQueue.pop_front(oItem))
+    {
+      pNetwork->OnReceivePeerMessage(this->GetPeerId(), std::move(oItem.pBuffer), oItem.size);
+    }
+  }
+}
+uint64_t ChannelSelf::GetPeerId() const
+{
+  return m_peer_id;
+}
+
+ChannelStream::ChannelStream(std::weak_ptr<Network> pNetwork, int fd) : Channel(pNetwork, fd)
+{
+  m_bHealthy = false;
+  m_ReceiveState.state = 0;
+  m_SendState.state = 0;
+}
+
+void ChannelStream::OnReadable()
 {
   while (true)
   {
@@ -79,23 +110,16 @@ void Channel::OnReadable()
         pNetwork->OnReceivePeerMessage(this->GetPeerId(), std::move(m_ReceiveState.pBuffer), m_ReceiveState.size);
       }
       m_ReceiveState.state = 0;
-      return;
+      break;
     }
     }
   }
 };
-void Channel::EnqueueSendMessage(std::unique_ptr<char[]> pBuffer, uint32_t size)
-{
-  QueueItem oItem;
-  oItem.pBuffer = std::move(pBuffer);
-  oItem.size = size;
-  std::vector<QueueItem> vec;
-  m_SendQueue.push_back(std::move(oItem));
-}
-void Channel::OnDisconnect()
+
+void ChannelStream::OnDisconnect()
 {
 }
-void Channel::OnWritableOrTaskArrive()
+void ChannelStream::OnWritableOrTaskArrive()
 {
   while (true)
   {
@@ -149,6 +173,7 @@ void Channel::OnWritableOrTaskArrive()
     }
     case 6:
     {
+      auto pNetwork = this->m_pNetwork.lock();
       m_SendState.state = 0;
       m_SendState.pBuffer.release();
       break;
@@ -156,7 +181,7 @@ void Channel::OnWritableOrTaskArrive()
     }
   }
 }
-ChannelIncoming::ChannelIncoming(std::weak_ptr<Network> pNetwork, int fd) : Channel(pNetwork, fd)
+ChannelIncoming::ChannelIncoming(std::weak_ptr<Network> pNetwork, int fd) : ChannelStream(pNetwork, fd)
 {
   m_iPrepareState = 0;
   this->OnReadable();
@@ -191,7 +216,7 @@ void ChannelIncoming::OnReadable()
       break;
     }
     case 9:
-      Channel::OnReadable();
+      ChannelStream::OnReadable();
       return;
     }
   }
@@ -204,7 +229,7 @@ uint64_t ChannelIncoming::GetPeerId() const
   }
   return m_peer_id;
 }
-ChannelOutgoing::ChannelOutgoing(std::weak_ptr<Network> pNetwork, int fd, uint64_t peer_id) : Channel(pNetwork, fd)
+ChannelOutgoing::ChannelOutgoing(std::weak_ptr<Network> pNetwork, int fd, uint64_t peer_id) : ChannelStream(pNetwork, fd)
 {
   m_iPrepareState = 0;
   m_peer_id = peer_id;
@@ -229,7 +254,6 @@ void ChannelOutgoing::OnWritableOrTaskArrive()
     {
       uint64_t peer_id_n = htonll(m_my_id);
       ssize_t size = send(m_fd, &peer_id_n + m_iPrepareState, 8 - m_iPrepareState, MSG_DONTWAIT);
-      std::cout << size << " " << errno << std::endl;
       if (size <= 0)
       {
         return;
@@ -243,7 +267,7 @@ void ChannelOutgoing::OnWritableOrTaskArrive()
       break;
     }
     case 9:
-      Channel::OnWritableOrTaskArrive();
+      ChannelStream::OnWritableOrTaskArrive();
       return;
     }
   }

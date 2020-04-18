@@ -3,6 +3,7 @@
 #include <mutex>
 #include <memory>
 #include <atomic>
+#include <spdlog/spdlog.h>
 #include "paxoslib/proto/message.pb.h"
 #include "paxoslib/proto/config.pb.h"
 #include "paxoslib/network.hpp"
@@ -94,6 +95,10 @@ void Network::OnReceivePeerMessage(uint64_t peer_id, std::unique_ptr<char[]> pBu
     oMessage.ParseFromArray(pBuffer.get(), size);
     pPeer->EnqueueReceiveMessage(oMessage);
   }
+  else
+  {
+    SPDLOG_DEBUG("Receive unknown message {}", peer_id);
+  }
 }
 void Network::AddPeer(std::shared_ptr<Peer> pPeer)
 {
@@ -142,7 +147,6 @@ void Network::MakeChannelForPeer(uint64_t peer_id, const std::string &strIp, con
   m_epoll.WatchDisconnect(fd);
   m_epoll.WatchReadable(fd);
   m_epoll.WatchWritable(fd);
-  std::cout << "connect peer " << peer_id << " " << iRet << " " << fd << std::endl;
   auto pChannel = std::make_shared<ChannelOutgoing>(shared_from_this(), fd, peer_id);
   this->AddChannel(pChannel);
 }
@@ -155,7 +159,6 @@ auto as_integer(Enumeration const value)
 void Network::EnqueueEvent(const Event &oEvent, bool bNoticeEventLoop)
 {
   m_oEventQueue.push_back(oEvent);
-  std::cout << "enqueue event " << as_integer(oEvent.type) << " " << oEvent.fd << std::endl;
   if (bNoticeEventLoop)
   {
     uint64_t signal = 1;

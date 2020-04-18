@@ -9,6 +9,7 @@
 #include "paxoslib/peer.hpp"
 #include "paxoslib/proto/config.pb.h"
 #include "paxoslib/network.hpp"
+#include "paxoslib/channel.hpp"
 namespace paxoslib
 {
 class Instance::InstanceImpl : public network::ReceiveEventListener
@@ -30,13 +31,16 @@ public:
         m_vecPeers.push_back(pPeer);
       }
     }
+    auto pPeer = std::make_shared<network::Peer>(m_ddwNodeId, this, pNetwork);
+    pPeer->AddRoleType(RoleType::ROLE_TYPE_ACCEPTER);
+    pPeer->AddRoleType(RoleType::ROLE_TYPE_PROPOSER);
+    pNetwork->AddPeer(pPeer);
+    m_vecPeers.push_back(pPeer);
+    auto pSelfChannel = std::make_shared<network::ChannelSelf>(pNetwork, -1, m_ddwNodeId);
+    pNetwork->AddChannel(pSelfChannel);
   }
-  virtual void OnMessage(const Message &oMessage)
+  virtual int OnMessage(const Message &oMessage)
   {
-    if (oMessage.to_node_id() == 1)
-    {
-      std::cout << "ReceiveMessage from " << oMessage.from_node_id() << " data:" << oMessage.ShortDebugString() << std::endl;
-    }
     switch (oMessage.type())
     {
     case Message_Type::Message_Type_PROMISED:

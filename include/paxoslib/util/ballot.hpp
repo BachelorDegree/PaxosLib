@@ -61,6 +61,14 @@ public:
   {
     return m_setDownVoter.size() >= GetMajority();
   }
+  uint32_t GetUpCount() const
+  {
+    return m_setUpVoter.size();
+  }
+  uint32_t GetDownCount() const
+  {
+    return m_setDownVoter.size();
+  }
 
 private:
   uint32_t m_ddwTotal;

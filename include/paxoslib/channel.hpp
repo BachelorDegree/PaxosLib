@@ -8,34 +8,23 @@
 #include "paxoslib/util/lfqueue.hpp"
 namespace paxoslib::network
 {
+
 class Channel
 {
 public:
   Channel(std::weak_ptr<Network> pNetwork, int fd);
   void EnqueueSendMessage(std::unique_ptr<char[]> pBuffer, uint32_t size);
-
-  virtual void OnDisconnect();
-  virtual void OnWritableOrTaskArrive();
-  virtual void OnReadable();
+  virtual void OnDisconnect() = 0;
+  virtual void OnWritableOrTaskArrive() = 0;
+  virtual void OnReadable() = 0;
   virtual uint64_t GetPeerId() const = 0;
-  int GetFd() const;
+  int GetFd() const
+  {
+    return m_fd;
+  };
   virtual ~Channel();
 
 protected:
-  struct ReceiveState
-  {
-    int state;
-    uint32_t size;
-    std::unique_ptr<char[]> pBuffer;
-    uint32_t read;
-  };
-  struct SendState
-  {
-    int state;
-    uint32_t size;
-    std::unique_ptr<char[]> pBuffer;
-    uint32_t write;
-  };
   class QueueItem
   {
   public:
@@ -58,14 +47,51 @@ protected:
       *this = std::move(other);
     }
   };
-  util::LFQueue<QueueItem> m_SendQueue;
   int m_fd;
   bool m_bHealthy;
+  std::weak_ptr<Network> m_pNetwork;
+  util::LFQueue<QueueItem> m_SendQueue;
+};
+class ChannelSelf : public Channel
+{
+public:
+  ChannelSelf(std::weak_ptr<Network> pNetwork, int fd, uint64_t peer_id);
+  virtual void OnDisconnect();
+  virtual void OnWritableOrTaskArrive();
+  virtual void OnReadable();
+  virtual uint64_t GetPeerId() const;
+
+private:
+  uint64_t m_peer_id;
+};
+class ChannelStream : public Channel
+{
+public:
+  ChannelStream(std::weak_ptr<Network> pNetwork, int fd);
+  virtual void OnDisconnect();
+  virtual void OnWritableOrTaskArrive();
+  virtual void OnReadable();
+  virtual uint64_t GetPeerId() const = 0;
+
+protected:
+  struct ReceiveState
+  {
+    int state;
+    uint32_t size;
+    std::unique_ptr<char[]> pBuffer;
+    uint32_t read;
+  };
+  struct SendState
+  {
+    int state;
+    uint32_t size;
+    std::unique_ptr<char[]> pBuffer;
+    uint32_t write;
+  };
   ReceiveState m_ReceiveState;
   SendState m_SendState;
-  std::weak_ptr<Network> m_pNetwork;
 };
-class ChannelIncoming : public Channel
+class ChannelIncoming : public ChannelStream
 {
 public:
   ChannelIncoming(std::weak_ptr<Network> pNetwork, int fd);
@@ -76,7 +102,7 @@ private:
   uint64_t m_peer_id;
   int m_iPrepareState;
 };
-class ChannelOutgoing : public Channel
+class ChannelOutgoing : public ChannelStream
 {
 public:
   ChannelOutgoing(std::weak_ptr<Network> pNetwork, int fd, uint64_t peer_id);

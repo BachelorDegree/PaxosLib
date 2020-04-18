@@ -13,8 +13,10 @@ public:
   int OnRejectPromise(const Message &oMessage);
   int OnAccepted(const Message &oMessage);
   int OnRejectAccept(const Message &oMessage);
-  virtual void OnMessage(const Message &oMessage);
   uint64_t NewProposalId();
+
+protected:
+  virtual int OnReceiveMessage(const Message &oMessage);
 
 private:
   uint64_t GetProposalId();

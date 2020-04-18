@@ -1,3 +1,4 @@
+#include <spdlog/spdlog.h>
 #include "paxoslib/proto/message.pb.h"
 #include "paxoslib/role/proposer.hpp"
 using namespace paxoslib;
@@ -36,21 +37,29 @@ int Proposer::OnPromised(const Message &oMessage)
   {
     m_oBallot.VoteUp(oMessage.from_node_id());
   }
+  SPDLOG_DEBUG("VoteUpFrom: {} up:{} down:{}", oMessage.from_node_id(), m_oBallot.GetUpCount(), m_oBallot.GetDownCount());
+
   if (m_oBallot.IsMajorityUp())
   {
+    SPDLOG_DEBUG("MajorityUp {} broadcast accept", m_oBallot.GetUpCount());
     this->Accept(m_oBallot.GetChosenProposal(this->m_oProposal));
   }
 }
 int Proposer::OnRejectPromise(const Message &oMessage)
 {
   m_oBallot.VoteDown(oMessage.from_node_id(), oMessage.reject_promise().promised_proposal_id());
+  SPDLOG_DEBUG("VoteDownFrom: {} up:{} down:{}", oMessage.from_node_id(), m_oBallot.GetUpCount(), m_oBallot.GetDownCount());
+
   if (m_oBallot.IsMajorityDown())
   {
   }
 }
-int Proposer::OnAccepted(const Message &oMessage) {}
+int Proposer::OnAccepted(const Message &oMessage)
+{
+  SPDLOG_DEBUG("OnAccepted: {}", oMessage.ShortDebugString());
+}
 int Proposer::OnRejectAccept(const Message &oMessage) {}
-void Proposer::OnMessage(const Message &oMessage)
+int Proposer::OnReceiveMessage(const Message &oMessage)
 {
   switch (oMessage.type())
   {

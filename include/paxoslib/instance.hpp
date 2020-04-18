@@ -5,6 +5,7 @@
 #include <memory>
 namespace paxoslib
 {
+class Message;
 namespace config
 {
 class Config;
