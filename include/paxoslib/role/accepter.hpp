@@ -5,7 +5,7 @@ namespace paxoslib::role
 class Accepter : public paxoslib::role::Role
 {
 public:
-  Accepter(Instance *pInstance);
+  Accepter(InstanceImpl *pInstance);
   int OnPrepare(const Message &oMessage);
   int OnAccept(const Message &oMessage);
 

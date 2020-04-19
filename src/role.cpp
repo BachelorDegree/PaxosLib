@@ -1,12 +1,12 @@
 #include <atomic>
 #include "paxoslib/role.hpp"
-#include "paxoslib/instance.hpp"
+#include "paxoslib/instanceimpl.hpp"
 #include <spdlog/spdlog.h>
 
 std::atomic<uint64_t> g_msgid{1};
 namespace paxoslib::role
 {
-Role::Role(Instance *pInstance)
+Role::Role(InstanceImpl *pInstance)
 {
   m_pInstance = pInstance;
 }

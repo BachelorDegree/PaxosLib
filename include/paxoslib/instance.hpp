@@ -16,6 +16,7 @@ class Network;
 class Peer;
 } // namespace network
 class Proposal;
+class InstanceImpl;
 class Instance
 {
 public:
@@ -28,7 +29,6 @@ public:
   ~Instance();
 
 private:
-  class InstanceImpl;
   InstanceImpl *pImpl;
 };
 }; // namespace paxoslib

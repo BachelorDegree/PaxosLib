@@ -2,7 +2,7 @@
 #include "paxoslib/role/accepter.hpp"
 namespace paxoslib::role
 {
-Accepter::Accepter(Instance *pInstance) : Role(pInstance)
+Accepter::Accepter(InstanceImpl *pInstance) : Role(pInstance)
 {
   m_bPromised = false;
   m_bAccepted = false;

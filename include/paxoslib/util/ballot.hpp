@@ -11,7 +11,7 @@ public:
   Ballot()
   {
   }
-  void ResetBallot(uint32_t total, const Proposal &oProposal)
+  void ResetBallot(uint32_t total)
   {
     m_ddwTotal = total;
     m_setUpVoter.clear();

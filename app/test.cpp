@@ -43,6 +43,11 @@ int main()
   paxoslib::Instance oInstance2{oConfig2, network2};
   paxoslib::Instance oInstance3{oConfig3, network3};
   //sleep(1);
-  oInstance1.Propose("test");
+  oInstance1.Propose("test1");
+  std::cout << "propose finish" << std::endl;
+  oInstance2.Propose("test2");
+  std::cout << "propose finish" << std::endl;
+  oInstance2.Propose("test3");
+  std::cout << "propose finish" << std::endl;
   sleep(5);
 }
