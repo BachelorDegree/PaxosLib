@@ -80,7 +80,7 @@ const Proposal &InstanceImpl::GetProposal() const
 {
   return this->m_oProposal;
 }
-uint64_t InstanceImpl::GetNodeId() const
+uint16_t InstanceImpl::GetNodeId() const
 {
   return this->m_ddwNodeId;
 }
@@ -122,7 +122,7 @@ std::vector<std::shared_ptr<network::Peer>> Instance::GetPeers() const
   return this->pImpl->GetPeers();
 }
 const Proposal &Instance::GetProposal() const { return this->pImpl->GetProposal(); }
-uint64_t Instance::GetNodeId() const { return this->pImpl->GetNodeId(); }
+uint16_t Instance::GetNodeId() const { return this->pImpl->GetNodeId(); }
 int Instance::Propose(const std::string &value)
 {
   return this->pImpl->Propose(value);

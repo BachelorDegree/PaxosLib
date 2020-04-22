@@ -26,7 +26,7 @@ public:
   void NewInstance();
   uint64_t GetInstanceId() const;
   const Proposal &GetProposal() const;
-  uint64_t GetNodeId() const;
+  uint16_t GetNodeId() const;
   int Propose(const std::string &value);
   std::vector<std::shared_ptr<network::Peer>> GetPeers() const;
 
@@ -34,7 +34,7 @@ private:
   int WaitResult();
   int SubmitResult();
   uint64_t m_ddwInstanceId;
-  uint64_t m_ddwNodeId;
+  uint16_t m_ddwNodeId;
   int m_event_fd;
   Proposal m_oProposal;
   std::vector<std::shared_ptr<network::Peer>> m_vecPeers;

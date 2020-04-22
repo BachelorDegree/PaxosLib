@@ -21,19 +21,19 @@ class Network : public std::enable_shared_from_this<Network>
 {
 public:
   Network(const config::Config &);
-  void OnReceivePeerMessage(uint64_t peer_id, std::unique_ptr<char[]> pBuffer, uint32_t size);
+  void OnReceivePeerMessage(uint16_t peer_id, std::unique_ptr<char[]> pBuffer, uint32_t size);
 
   void AddPeer(std::shared_ptr<Peer> pPeer);
   void AddChannel(std::shared_ptr<Channel> pChannel);
 
   void StartListner();
-  void MakeChannelForPeer(uint64_t peer_id, const std::string &strIp, const int port);
-  void SendMessageToPeer(uint64_t peer_id, const Message &oMessage);
-  uint64_t GetNodeId() const;
+  void MakeChannelForPeer(uint16_t peer_id, const std::string &strIp, const int port);
+  void SendMessageToPeer(uint16_t peer_id, const Message &oMessage);
+  uint16_t GetNodeId() const;
 
 private:
-  std::shared_ptr<Peer> GetPeerById(uint64_t peer_id);
-  std::shared_ptr<Channel> GetChannelByPeerId(uint64_t peer_id);
+  std::shared_ptr<Peer> GetPeerById(uint16_t peer_id);
+  std::shared_ptr<Channel> GetChannelByPeerId(uint16_t peer_id);
   std::shared_ptr<Channel> GetChannelByFd(int fd);
   enum class EventType
   {

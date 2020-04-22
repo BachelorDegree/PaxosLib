@@ -23,7 +23,7 @@ public:
   Instance(const paxoslib::config::Config &oConfig, std::shared_ptr<network::Network> pNetwork);
   uint64_t GetInstanceId() const;
   const Proposal &GetProposal() const;
-  uint64_t GetNodeId() const;
+  uint16_t GetNodeId() const;
   int Propose(const std::string &);
   std::vector<std::shared_ptr<network::Peer>> GetPeers() const;
   ~Instance();

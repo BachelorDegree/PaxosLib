@@ -17,7 +17,7 @@ public:
   virtual void OnDisconnect() = 0;
   virtual void OnWritableOrTaskArrive() = 0;
   virtual void OnReadable() = 0;
-  virtual uint64_t GetPeerId() const = 0;
+  virtual uint16_t GetPeerId() const = 0;
   int GetFd() const
   {
     return m_fd;
@@ -55,14 +55,14 @@ protected:
 class ChannelSelf : public Channel
 {
 public:
-  ChannelSelf(std::weak_ptr<Network> pNetwork, int fd, uint64_t peer_id);
+  ChannelSelf(std::weak_ptr<Network> pNetwork, int fd, uint16_t peer_id);
   virtual void OnDisconnect();
   virtual void OnWritableOrTaskArrive();
   virtual void OnReadable();
-  virtual uint64_t GetPeerId() const;
+  virtual uint16_t GetPeerId() const;
 
 private:
-  uint64_t m_peer_id;
+  uint16_t m_peer_id;
 };
 class ChannelStream : public Channel
 {
@@ -71,7 +71,7 @@ public:
   virtual void OnDisconnect();
   virtual void OnWritableOrTaskArrive();
   virtual void OnReadable();
-  virtual uint64_t GetPeerId() const = 0;
+  virtual uint16_t GetPeerId() const = 0;
 
 protected:
   struct ReceiveState
@@ -96,21 +96,21 @@ class ChannelIncoming : public ChannelStream
 public:
   ChannelIncoming(std::weak_ptr<Network> pNetwork, int fd);
   virtual void OnReadable();
-  virtual uint64_t GetPeerId() const;
+  virtual uint16_t GetPeerId() const;
 
 private:
-  uint64_t m_peer_id;
+  uint16_t m_peer_id;
   int m_iPrepareState;
 };
 class ChannelOutgoing : public ChannelStream
 {
 public:
-  ChannelOutgoing(std::weak_ptr<Network> pNetwork, int fd, uint64_t peer_id);
+  ChannelOutgoing(std::weak_ptr<Network> pNetwork, int fd, uint16_t peer_id);
   virtual void OnWritableOrTaskArrive();
-  virtual uint64_t GetPeerId() const;
+  virtual uint16_t GetPeerId() const;
 
 private:
-  uint64_t m_peer_id;
+  uint16_t m_peer_id;
   uint64_t m_my_id;
   int m_iPrepareState;
 };

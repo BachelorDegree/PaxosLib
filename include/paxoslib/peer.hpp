@@ -25,7 +25,7 @@ public:
   {
     Message message;
   };
-  Peer(uint64_t peer_id, ReceiveEventListener *pEventListner, std::shared_ptr<Network> pNetwork);
+  Peer(uint16_t peer_id, ReceiveEventListener *pEventListner, std::shared_ptr<Network> pNetwork);
   uint32_t GetPeerID() const;
   const std::set<RoleType> &GetRoleTypes() const;
   void AddRoleType(RoleType);
@@ -39,7 +39,7 @@ private:
   void WaitEvent(int fd);
   int m_fd;
   int m_event_fd;
-  uint64_t m_peer_id;
+  uint16_t m_peer_id;;
   util::LFQueue<ReceiveQueueItem> m_ReceiveQueue;
   std::set<RoleType> m_setRoleTypes;
   ReceiveEventListener *m_pEventListner;

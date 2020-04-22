@@ -28,7 +28,7 @@ Channel::~Channel()
 {
 }
 
-ChannelSelf::ChannelSelf(std::weak_ptr<Network> pNetwork, int fd, uint64_t peer_id) : Channel(pNetwork, fd), m_peer_id(peer_id) {}
+ChannelSelf::ChannelSelf(std::weak_ptr<Network> pNetwork, int fd, uint16_t peer_id) : Channel(pNetwork, fd), m_peer_id(peer_id) {}
 void ChannelSelf::OnDisconnect() {}
 void ChannelSelf::OnWritableOrTaskArrive()
 {
@@ -45,7 +45,7 @@ void ChannelSelf::OnReadable()
     }
   }
 }
-uint64_t ChannelSelf::GetPeerId() const
+uint16_t ChannelSelf::GetPeerId() const
 {
   return m_peer_id;
 }
@@ -194,14 +194,8 @@ void ChannelIncoming::OnReadable()
     {
     case 0:
     case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
     {
-      ssize_t size = recv(m_fd, &m_peer_id + m_iPrepareState, 8 - m_iPrepareState, MSG_DONTWAIT);
+      ssize_t size = recv(m_fd, &m_peer_id + m_iPrepareState, 2 - m_iPrepareState, MSG_DONTWAIT);
       if (size <= 0)
       {
         return;
@@ -209,27 +203,27 @@ void ChannelIncoming::OnReadable()
       m_iPrepareState += size;
       break;
     }
-    case 8:
+    case 2:
     {
-      m_peer_id = ntohll(m_peer_id);
-      m_iPrepareState = 9;
+      m_peer_id = ntohs(m_peer_id);
+      m_iPrepareState = 3;
       break;
     }
-    case 9:
+    case 3:
       ChannelStream::OnReadable();
       return;
     }
   }
 }
-uint64_t ChannelIncoming::GetPeerId() const
+uint16_t ChannelIncoming::GetPeerId() const
 {
-  if (m_iPrepareState != 9)
+  if (m_iPrepareState != 3)
   {
-    return UINT64_MAX;
+    return UINT16_MAX;
   }
   return m_peer_id;
 }
-ChannelOutgoing::ChannelOutgoing(std::weak_ptr<Network> pNetwork, int fd, uint64_t peer_id) : ChannelStream(pNetwork, fd)
+ChannelOutgoing::ChannelOutgoing(std::weak_ptr<Network> pNetwork, int fd, uint16_t peer_id) : ChannelStream(pNetwork, fd)
 {
   m_iPrepareState = 0;
   m_peer_id = peer_id;
@@ -245,15 +239,9 @@ void ChannelOutgoing::OnWritableOrTaskArrive()
     {
     case 0:
     case 1:
-    case 2:
-    case 3:
-    case 4:
-    case 5:
-    case 6:
-    case 7:
     {
-      uint64_t peer_id_n = htonll(m_my_id);
-      ssize_t size = send(m_fd, &peer_id_n + m_iPrepareState, 8 - m_iPrepareState, MSG_DONTWAIT);
+      uint16_t peer_id_n = htons(m_my_id);
+      ssize_t size = send(m_fd, &peer_id_n + m_iPrepareState, 2 - m_iPrepareState, MSG_DONTWAIT);
       if (size <= 0)
       {
         return;
@@ -261,18 +249,18 @@ void ChannelOutgoing::OnWritableOrTaskArrive()
       m_iPrepareState += size;
       break;
     }
-    case 8:
+    case 2:
     {
-      m_iPrepareState = 9;
+      m_iPrepareState = 3;
       break;
     }
-    case 9:
+    case 3:
       ChannelStream::OnWritableOrTaskArrive();
       return;
     }
   }
 }
-uint64_t ChannelOutgoing::GetPeerId() const
+uint16_t ChannelOutgoing::GetPeerId() const
 {
   return m_peer_id;
 }

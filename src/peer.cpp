@@ -4,7 +4,7 @@
 #include "sys/eventfd.h"
 namespace paxoslib::network
 {
-Peer::Peer(uint64_t peer_id, ReceiveEventListener *pEventListner, std::shared_ptr<Network> pNetwork)
+Peer::Peer(uint16_t peer_id, ReceiveEventListener *pEventListner, std::shared_ptr<Network> pNetwork)
 {
   m_pEventListner = pEventListner;
   m_peer_id = peer_id;

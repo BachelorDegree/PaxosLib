@@ -33,7 +33,7 @@ Network::Network(const config::Config &oConfig) : m_epoll(1024)
   });
   thread.detach();
 }
-std::shared_ptr<Peer> Network::GetPeerById(uint64_t peer_id)
+std::shared_ptr<Peer> Network::GetPeerById(uint16_t peer_id)
 {
   auto pVecPeer = std::atomic_load(&m_pVecPeer);
   for (auto pPeer : *pVecPeer)
@@ -45,7 +45,7 @@ std::shared_ptr<Peer> Network::GetPeerById(uint64_t peer_id)
   }
   return {};
 }
-std::shared_ptr<Channel> Network::GetChannelByPeerId(uint64_t peer_id)
+std::shared_ptr<Channel> Network::GetChannelByPeerId(uint16_t peer_id)
 {
   auto pVecChannel = std::atomic_load(&m_pVecChannel);
   for (auto pChannel : *pVecChannel)
@@ -69,7 +69,7 @@ std::shared_ptr<Channel> Network::GetChannelByFd(int fd)
   }
   return {};
 }
-void Network::SendMessageToPeer(uint64_t peer_id, const Message &oMessage)
+void Network::SendMessageToPeer(uint16_t peer_id, const Message &oMessage)
 {
   if (auto pChannel = GetChannelByPeerId(peer_id))
   {
@@ -83,11 +83,11 @@ void Network::SendMessageToPeer(uint64_t peer_id, const Message &oMessage)
     EnqueueEvent(oEvent, true);
   }
 }
-uint64_t Network::GetNodeId() const
+uint16_t Network::GetNodeId() const
 {
   return m_node_id;
 }
-void Network::OnReceivePeerMessage(uint64_t peer_id, std::unique_ptr<char[]> pBuffer, uint32_t size)
+void Network::OnReceivePeerMessage(uint16_t peer_id, std::unique_ptr<char[]> pBuffer, uint32_t size)
 {
   if (auto pPeer = GetPeerById(peer_id))
   {
@@ -128,7 +128,7 @@ void Network::StartListner()
   m_epoll.WatchReadable(this->m_listen_fd);
   listen(this->m_listen_fd, 100);
 }
-void Network::MakeChannelForPeer(uint64_t peer_id, const std::string &strIp, const int port)
+void Network::MakeChannelForPeer(uint16_t peer_id, const std::string &strIp, const int port)
 {
   int fd = socket(AF_INET, SOCK_STREAM, 0);
   struct sockaddr_in addr;

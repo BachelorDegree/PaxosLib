@@ -7,6 +7,6 @@ message Peer{
 }
 message Config{
   repeated Peer peers = 1;
-  uint64 node_id = 2;
+  uint32 node_id = 2;
   uint32 port = 3;
 }

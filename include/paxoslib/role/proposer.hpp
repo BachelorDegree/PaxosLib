@@ -22,7 +22,7 @@ protected:
   uint64_t GetProposalId();
 
 private:
-  uint64_t m_ddwNodeId;
+  uint16_t m_ddwNodeId;
   uint64_t m_ddwProposalId;
   int m_iStage;
   Proposal m_oProposal;
