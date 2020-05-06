@@ -5,8 +5,9 @@
 
 namespace paxoslib::role
 {
-Learner::Learner(InstanceImpl *pInstance) : Role(pInstance)
+Learner::Learner(InstanceImpl *pInstance, Context &oContext) : Role(pInstance), m_oContext(oContext)
 {
+  m_bLearned = false;
 }
 int Learner::OnReceiveMessage(const Message &oMessage)
 {
@@ -21,9 +22,19 @@ int Learner::OnLearn(const Message &oMessage)
 {
   SPDLOG_DEBUG("Learner OnLearn {}", oMessage.ShortDebugString());
   //重入怎么办？
-  if (oMessage.from_node_id() == this->m_pInstance->GetNodeId())
+  if (m_bLearned)
   {
-    m_pInstance->SubmitResult();
+    SPDLOG_INFO("Learned, skip");
+    return 0;
   }
+  m_bLearned = true;
+}
+bool Learner::IsLearned() const
+{
+  return m_bLearned;
+}
+void Learner::InitForNewInstance()
+{
+  m_bLearned = false;
 }
 }; // namespace paxoslib::role

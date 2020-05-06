@@ -63,4 +63,17 @@ void Role::SendMessageTo(uint32_t dwNodeId, const Message &oMessage)
     }
   }
 }
+uint64_t Role::GetInstanceID() const
+{
+  return m_ddwInstranceID;
+}
+void Role::SetInstanceID(uint64_t value)
+{
+  m_ddwInstranceID = value;
+}
+void Role::NewInstance()
+{
+  m_ddwInstranceID++;
+  this->InitForNewInstance();
+}
 }; // namespace paxoslib::role

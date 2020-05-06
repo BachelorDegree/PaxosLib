@@ -3,7 +3,11 @@
 #include <memory>
 #include <cstdint>
 #include <string>
+#include <sys/eventfd.h>
+#include "paxoslib/context.hpp"
 #include "paxoslib/proto/message.pb.h"
+#include "paxoslib/proto/instance.pb.h"
+#include "paxoslib/persistence/storage.hpp"
 #include "paxoslib/instance.hpp"
 #include "paxoslib/role/accepter.hpp"
 #include "paxoslib/role/learner.hpp"
@@ -12,8 +16,8 @@
 #include "paxoslib/proto/config.pb.h"
 #include "paxoslib/network.hpp"
 #include "paxoslib/channel.hpp"
-#include "sys/eventfd.h"
-
+#include "paxoslib/statemachine.hpp"
+#include "paxoslib/statemachinemgr.hpp"
 namespace paxoslib
 {
 
@@ -21,27 +25,32 @@ class InstanceImpl : public network::ReceiveEventListener
 {
 
 public:
-  InstanceImpl(Instance *pInstance, const paxoslib::config::Config &oConfig, std::shared_ptr<network::Network> pNetwork);
+  InstanceImpl(Instance *pInstance, const paxoslib::config::Config &oConfig, std::shared_ptr<network::Network> pNetwork, std::unique_ptr<paxoslib::persistence::Storage> pStorage, std::shared_ptr<StateMachineMgr> pStateMachineMgr);
   virtual int OnMessage(const Message &oMessage);
+  virtual int OnProposerMessage(const Message &oMessage);
+  virtual int OnAccepterMessage(const Message &oMessage);
+  virtual int OnLearnerMessage(const Message &oMessage);
   void NewInstance();
-  uint64_t GetInstanceId() const;
-  const Proposal &GetProposal() const;
   uint16_t GetNodeId() const;
   int Propose(const std::string &value);
+
   std::vector<std::shared_ptr<network::Peer>> GetPeers() const;
 
 private:
-  int WaitResult();
-  int SubmitResult();
-  uint64_t m_ddwInstanceId;
+  int ExecuteStateMachine(uint64_t id, const std::string &value);
   uint16_t m_ddwNodeId;
   int m_event_fd;
-  Proposal m_oProposal;
   std::vector<std::shared_ptr<network::Peer>> m_vecPeers;
   std::shared_ptr<network::Network> m_pNetwork;
+  std::unique_ptr<paxoslib::persistence::Storage> m_pStorage;
+  std::shared_ptr<StateMachineMgr> m_pStateMachineMgr;
   role::Proposer m_oProposer;
   role::Accepter m_oAccepter;
   role::Learner m_oLearner;
+  Context m_oContext;
   friend class role::Learner;
+  friend class role::Proposer;
+  friend class role::Accepter;
+  friend class role::Role;
 };
 }; // namespace paxoslib

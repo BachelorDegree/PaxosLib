@@ -1,0 +1,10 @@
+syntax = "proto3";
+package paxoslib.persistence;
+import "message.proto";
+message StateProto {
+  uint64 id = 1;
+  bool promised = 2;
+  bool accepted = 3;
+  uint64 promised_proposal_id = 4;
+  Proposal accepted_proposal = 5;
+}

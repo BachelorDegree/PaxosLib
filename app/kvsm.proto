@@ -1,0 +1,15 @@
+syntax = "proto3";
+package kvsm;
+message Request{
+  enum OpType{
+    Default = 0;
+    Put = 1;
+    Del = 2;
+  };
+  OpType op = 1;
+  bytes key = 2;
+  bytes value = 3;
+};
+message Response{
+  int32 ret = 1;
+}

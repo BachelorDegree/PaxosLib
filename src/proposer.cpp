@@ -5,7 +5,10 @@
 using namespace paxoslib;
 namespace paxoslib::role
 {
-Proposer::Proposer(InstanceImpl *pInstance) : Role(pInstance) {}
+Proposer::Proposer(InstanceImpl *pInstance, Context &oContext) : Role(pInstance), m_oContext(oContext)
+{
+  m_oStage = Stage::Idle;
+}
 uint64_t Proposer::GetProposalId()
 {
   return m_ddwProposalId;
@@ -21,15 +24,27 @@ uint64_t Proposer::RespawnProposalId()
   m_ddwProposalId = proposal_id;
   return proposal_id;
 }
+int Proposer::OnPrepareFailed()
+{
+  SPDLOG_DEBUG("prepare failed");
+  m_oContext.CommitResult(false, GetInstanceID(), "");
+}
+int Proposer::OnAcceptFailed()
+{
+  SPDLOG_DEBUG("accept failed");
+  m_oContext.CommitResult(false, GetInstanceID(), "");
+}
 int Proposer::Propose(const Proposal &oProposal)
 {
   RespawnProposalId();
-  m_iStage = 1;
+  m_oStage = Stage::Preparing;
   Message oMessage;
   this->m_oProposal = oProposal;
   oMessage.set_type(Message_Type::Message_Type_PREAPRE);
+  oMessage.set_instance_id(GetInstanceID());
   auto &oPrepare = *oMessage.mutable_prepare();
   oPrepare.set_proposal_id(this->GetProposalId());
+
   this->m_oBallot.ResetBallot(3);
   this->Broadcast(BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_ACCEPTER, BroadcastType::BROAD_CAST_TYPE_ALL, oMessage);
 }
@@ -37,6 +52,7 @@ int Proposer::Accept(const Proposal &oProposal)
 {
   Message oMessage;
   oMessage.set_type(Message_Type::Message_Type_ACCEPT);
+  oMessage.set_instance_id(GetInstanceID());
   oMessage.mutable_accept()->mutable_proposal()->CopyFrom(oProposal);
   oMessage.mutable_accept()->mutable_proposal()->set_id(this->GetProposalId());
   this->Broadcast(BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_ACCEPTER, BroadcastType::BROAD_CAST_TYPE_ALL, oMessage);
@@ -45,14 +61,16 @@ int Proposer::Learn(const Proposal &oProposal)
 {
   Message oMessage;
   oMessage.set_type(Message_Type::Message_Type_LEARN);
+  oMessage.set_instance_id(GetInstanceID());
   oMessage.mutable_accept()->mutable_proposal()->CopyFrom(oProposal);
   oMessage.mutable_accept()->mutable_proposal()->set_id(this->GetProposalId());
   this->Broadcast(BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_LEARNER, BroadcastType::BROAD_CAST_TYPE_ALL, oMessage);
 }
 int Proposer::OnPromised(const Message &oMessage)
 {
-  if (m_iStage != 1)
+  if (m_oStage != Stage::Preparing)
   {
+    SPDLOG_DEBUG("Not preparing. skip promise {}", oMessage.ShortDebugString());
     return 0;
   }
   if (oMessage.promised().has_accepted_proposal())
@@ -68,7 +86,7 @@ int Proposer::OnPromised(const Message &oMessage)
   if (m_oBallot.IsMajorityUp())
   {
     SPDLOG_DEBUG("MajorityUp {} broadcast accept", m_oBallot.GetUpCount());
-    m_iStage = 2;
+    m_oStage = Stage::Accepting;
     m_oProposal = m_oBallot.GetChosenProposal(this->m_oProposal);
     m_oBallot.ResetBallot(3);
     this->Accept(m_oProposal);
@@ -76,8 +94,9 @@ int Proposer::OnPromised(const Message &oMessage)
 }
 int Proposer::OnRejectPromise(const Message &oMessage)
 {
-  if (m_iStage != 1)
+  if (m_oStage != Stage::Preparing)
   {
+    SPDLOG_DEBUG("Not preparing. skip reject promise {}", oMessage.ShortDebugString());
     return 0;
   }
   m_oBallot.VoteDown(oMessage.from_node_id(), oMessage.reject_promise().promised_proposal_id());
@@ -85,13 +104,15 @@ int Proposer::OnRejectPromise(const Message &oMessage)
 
   if (m_oBallot.IsMajorityDown())
   {
-    m_iStage = 2;
+    m_oStage = Stage::Idle;
+    this->OnPrepareFailed();
   }
 }
 int Proposer::OnAccepted(const Message &oMessage)
 {
-  if (m_iStage != 2)
+  if (m_oStage != Stage::Accepting)
   {
+    SPDLOG_DEBUG("Not accepting. skip accepted {}", oMessage.ShortDebugString());
     return 0;
   }
   m_oBallot.VoteUp(oMessage.from_node_id());
@@ -100,14 +121,15 @@ int Proposer::OnAccepted(const Message &oMessage)
   if (m_oBallot.IsMajorityUp())
   {
     SPDLOG_DEBUG("MajorityUp {} broadcast learn", m_oBallot.GetUpCount());
-    m_iStage = 3;
+    m_oStage = Stage::Idle;
     this->Learn(m_oProposal);
   }
 }
 int Proposer::OnRejectAccept(const Message &oMessage)
 {
-  if (m_iStage != 2)
+  if (m_oStage != Stage::Accepting)
   {
+    SPDLOG_DEBUG("Not accepting. skip reject accept {}", oMessage.ShortDebugString());
     return 0;
   }
   m_oBallot.VoteDown(oMessage.from_node_id(), 0);
@@ -115,8 +137,8 @@ int Proposer::OnRejectAccept(const Message &oMessage)
 
   if (m_oBallot.IsMajorityDown())
   {
-    SPDLOG_DEBUG("IsMajorityDown {}", m_oBallot.GetUpCount());
-    m_iStage = 3;
+    m_oStage = Stage::Idle;
+    this->OnAcceptFailed();
   }
 }
 int Proposer::OnReceiveMessage(const Message &oMessage)
@@ -136,5 +158,8 @@ int Proposer::OnReceiveMessage(const Message &oMessage)
     this->OnRejectAccept(oMessage);
     break;
   }
+}
+void Proposer::InitForNewInstance()
+{
 }
 }; // namespace paxoslib::role
