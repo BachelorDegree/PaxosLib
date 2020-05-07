@@ -10,8 +10,8 @@ class StorageLeveldb : public Storage
 {
 public:
   StorageLeveldb(const std::string &strPath);
-  virtual int LoadState(uint64_t id, paxoslib::persistence::StateProto &oState) const;
-  virtual int SaveState(uint64_t id, const paxoslib::persistence::StateProto &oState);
+  virtual int LoadState(uint64_t id, paxoslib::StateProto &oState) const;
+  virtual int SaveState(uint64_t id, const paxoslib::StateProto &oState);
   virtual int GetMaxInstanceId(uint64_t &id);
   virtual ~StorageLeveldb();
 

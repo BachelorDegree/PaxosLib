@@ -5,7 +5,7 @@
 #include <leveldb/db.h>
 #include <leveldb/comparator.h>
 #include <assert.h>
-#include "paxoslib/proto/instance.pb.h"
+#include "paxoslib/proto/common.pb.h"
 #include "paxoslib/persistence/storageleveldb.hpp"
 #include "paxoslib/persistence/uint64comparator.hpp"
 namespace paxoslib
@@ -27,7 +27,7 @@ StorageLeveldb::StorageLeveldb(const std::string &strPath)
   leveldb::Status status = leveldb::DB::Open(options, strPath, &db);
   assert(status.ok());
 }
-int StorageLeveldb::LoadState(uint64_t id, paxoslib::persistence::StateProto &oState) const
+int StorageLeveldb::LoadState(uint64_t id, paxoslib::StateProto &oState) const
 {
   std::string strBuffer;
   int iRet = Load(id, strBuffer);
@@ -38,7 +38,7 @@ int StorageLeveldb::LoadState(uint64_t id, paxoslib::persistence::StateProto &oS
   oState.ParseFromString(strBuffer);
   return 0;
 }
-int StorageLeveldb::SaveState(uint64_t id, const paxoslib::persistence::StateProto &oState)
+int StorageLeveldb::SaveState(uint64_t id, const paxoslib::StateProto &oState)
 {
   std::string strBuffer;
   oState.SerializeToString(&strBuffer);

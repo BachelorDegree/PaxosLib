@@ -6,7 +6,7 @@
 #include <sys/eventfd.h>
 #include "paxoslib/context.hpp"
 #include "paxoslib/proto/message.pb.h"
-#include "paxoslib/proto/instance.pb.h"
+#include "paxoslib/proto/common.pb.h"
 #include "paxoslib/persistence/storage.hpp"
 #include "paxoslib/instance.hpp"
 #include "paxoslib/role/accepter.hpp"
@@ -38,6 +38,7 @@ public:
 
 private:
   int ExecuteStateMachine(uint64_t id, const std::string &value);
+  int OnLearnNewValue(uint64_t id, const std::string &value);
   uint16_t m_ddwNodeId;
   int m_event_fd;
   std::vector<std::shared_ptr<network::Peer>> m_vecPeers;

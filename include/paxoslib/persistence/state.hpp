@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include "paxoslib/proto/message.pb.h"
-#include "paxoslib/proto/instance.pb.h"
+#include "paxoslib/proto/common.pb.h"
 #include "paxoslib/persistence/storage.hpp"
 namespace paxoslib
 {
@@ -12,7 +12,8 @@ class State
 public:
   State(Storage *);
   void Reset();
-  void SetState(const paxoslib::persistence::StateProto &oState);
+  void SetState(const paxoslib::StateProto &oState);
+  paxoslib::StateProto GetState() const;
   int LoadState(uint64_t);
   bool IsPromised() const;
   bool IsAccepted() const;

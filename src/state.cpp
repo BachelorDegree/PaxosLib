@@ -1,6 +1,6 @@
 #include <spdlog/spdlog.h>
 #include "paxoslib/persistence/state.hpp"
-#include "paxoslib/proto/instance.pb.h"
+#include "paxoslib/proto/common.pb.h"
 namespace paxoslib
 {
 namespace persistence
@@ -17,7 +17,16 @@ void State::Reset()
   m_ddwPromisedProposalId = 0;
   m_oAcceptedProposal.Clear();
 }
-void State::SetState(const paxoslib::persistence::StateProto &oState)
+paxoslib::StateProto State::GetState() const
+{
+  StateProto oState;
+  oState.set_promised(m_bPromised);
+  oState.set_accepted(m_bAccepted);
+  oState.set_promised_proposal_id(m_ddwPromisedProposalId);
+  oState.mutable_accepted_proposal()->CopyFrom(m_oAcceptedProposal);
+  return oState;
+}
+void State::SetState(const paxoslib::StateProto &oState)
 {
   m_bPromised = oState.promised();
   m_bAccepted = oState.accepted();
@@ -34,12 +43,8 @@ void State::SetPromisedProposalId(uint64_t value) { m_ddwPromisedProposalId = va
 void State::SetAcceptedProposal(const Proposal &value) { m_oAcceptedProposal = value; }
 int State::Persist(uint64_t id)
 {
-  StateProto oState;
+  auto oState = GetState();
   oState.set_id(id);
-  oState.set_promised(m_bPromised);
-  oState.set_accepted(m_bAccepted);
-  oState.set_promised_proposal_id(m_ddwPromisedProposalId);
-  oState.mutable_accepted_proposal()->CopyFrom(m_oAcceptedProposal);
   int iRet = m_pStorage->SaveState(id, oState);
   return iRet;
 }

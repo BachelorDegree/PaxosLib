@@ -52,7 +52,7 @@ InstanceImpl::InstanceImpl(Instance *pInstance, const paxoslib::config::Config &
   //execute to the last log - 1
   for (auto id = ddwCPInstanceId + 1; id < ddwInstanceId; id++)
   {
-    paxoslib::persistence::StateProto oState;
+    paxoslib::StateProto oState;
     iRet = m_pStorage->LoadState(ddwInstanceId, oState);
     assert(iRet == 0);
     assert(oState.accepted());
@@ -61,7 +61,7 @@ InstanceImpl::InstanceImpl(Instance *pInstance, const paxoslib::config::Config &
     iRet = m_pStateMachineMgr->ExecuteForReplay(1, id, oState.accepted_proposal().value());
     assert(iRet == 0);
   }
-  paxoslib::persistence::StateProto oLastState;
+  paxoslib::StateProto oLastState;
   iRet = m_pStorage->LoadState(ddwInstanceId, oLastState);
   assert(iRet == 404 || iRet == 0);
   m_oAccepter.SetState(oLastState);
@@ -85,6 +85,7 @@ InstanceImpl::InstanceImpl(Instance *pInstance, const paxoslib::config::Config &
     this->NewInstance();
   }
   SPDLOG_DEBUG("Instance Begin from {}", this->m_oAccepter.GetInstanceID());
+  m_oLearner.AskForInstanceID();
 }
 int InstanceImpl::OnMessage(const Message &oMessage)
 {
@@ -101,6 +102,10 @@ int InstanceImpl::OnMessage(const Message &oMessage)
     OnAccepterMessage(oMessage);
     break;
   case Message_Type::Message_Type_LEARN:
+  case Message_Type::Message_Type_ASK_FOR_INSTANCE_ID:
+  case Message_Type::Message_Type_ASK_FOR_INSTANCE_ID_REPLY:
+  case Message_Type::Message_Type_ASK_FOR_LEARN_REPLY:
+  case Message_Type::Message_Type_ASK_FOR_LEARN:
     OnLearnerMessage(oMessage);
     break;
   }
@@ -125,6 +130,19 @@ int InstanceImpl::OnAccepterMessage(const Message &oMessage)
 }
 int InstanceImpl::OnLearnerMessage(const Message &oMessage)
 {
+  if (oMessage.type() == Message_Type_ASK_FOR_INSTANCE_ID ||
+      oMessage.type() == Message_Type_ASK_FOR_INSTANCE_ID_REPLY ||
+      oMessage.type() == Message_Type_ASK_FOR_LEARN_REPLY ||
+      oMessage.type() == Message_Type_ASK_FOR_LEARN)
+  {
+    int iRet = m_oLearner.OnMessage(oMessage);
+    if (iRet != 0)
+    {
+      SPDLOG_ERROR("m_oLearner.OnMessage failed. ret: {}", iRet);
+      return iRet;
+    }
+    return 0;
+  }
   if (oMessage.instance_id() != m_oProposer.GetInstanceID())
   {
     SPDLOG_ERROR("Not same Instance. my:{} his:{}", m_oProposer.GetInstanceID(), oMessage.instance_id());
@@ -138,10 +156,10 @@ int InstanceImpl::OnLearnerMessage(const Message &oMessage)
   }
   if (m_oLearner.IsLearned())
   {
-    iRet = this->ExecuteStateMachine(m_oAccepter.GetInstanceID(), m_oAccepter.GetState().GetAcceptedProposal().value());
+    iRet = this->OnLearnNewValue(m_oAccepter.GetInstanceID(), m_oAccepter.GetState().GetAcceptedProposal().value());
     if (iRet != 0)
     {
-      SPDLOG_ERROR("ExecuteStateMachine failed. ret: {}", iRet);
+      SPDLOG_ERROR("OnLearnNewValue failed. ret: {}", iRet);
       return iRet;
     }
     if (oMessage.from_node_id() == GetNodeId())
@@ -151,6 +169,11 @@ int InstanceImpl::OnLearnerMessage(const Message &oMessage)
     NewInstance();
   }
   return 0;
+}
+int InstanceImpl::OnLearnNewValue(uint64_t id, const std::string &value)
+{
+  //TODO
+  return this->ExecuteStateMachine(id, value);
 }
 int InstanceImpl::ExecuteStateMachine(uint64_t id, const std::string &value)
 {

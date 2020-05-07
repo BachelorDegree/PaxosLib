@@ -5,7 +5,7 @@
 #include "paxoslib/peer.hpp"
 #include "paxoslib/proto/network.pb.h"
 #include "paxoslib/proto/message.pb.h"
-#include "paxoslib/proto/instance.pb.h"
+#include "paxoslib/proto/common.pb.h"
 namespace paxoslib
 {
 class InstanceImpl;

@@ -1,33 +1,26 @@
 syntax = "proto3";
 package paxoslib;
-message Proposal {
-  uint64 id = 1;
-  bytes value = 2;
-}
-message MessagePrepare{
-  uint64 proposal_id = 1;
-}
-message MessagePromised{
+import "common.proto";
+message MessagePrepare { uint64 proposal_id = 1; }
+message MessagePromised {
   bool is_accepted = 1;
   Proposal accepted_proposal = 2;
 }
-message MessageRejectPromise{
-  uint64 promised_proposal_id = 1;
+message MessageRejectPromise { uint64 promised_proposal_id = 1; }
+message MessageAccept { Proposal proposal = 1; }
+message MessageAccepted { Proposal proposal = 1; }
+message MessageRejectAccept {}
+message MessageLearn { Proposal proposal = 1; }
+message MessageAskForLearn { uint64 from_instance_id = 1; }
+message MessageAskForLearnReply {
+  uint64 start_instance_id = 1;
+  repeated StateProto states = 2;
+  uint64 my_instance_id = 3;
 }
-message MessageAccept{
-  Proposal proposal = 1;
-}
-message MessageAccepted{
-  Proposal proposal = 1;
-}
-message MessageRejectAccept{
-
-}
-message MessageLearn{
-  Proposal proposal = 1;
-}
-message Message{
-  enum Type{
+message MessageAskForInstanceID { uint64 my_instance_id = 1; }
+message MessageAskForInstanceIDReply { uint64 my_instance_id = 1; }
+message Message {
+  enum Type {
     DEFAULT = 0;
     PREAPRE = 1;
     PROMISED = 2;
@@ -36,6 +29,12 @@ message Message{
     ACCEPTED = 5;
     REJECT_ACCEPT = 6;
     LEARN = 7;
+
+    // For Learner
+    ASK_FOR_LEARN = 100;
+    ASK_FOR_LEARN_REPLY = 101;
+    ASK_FOR_INSTANCE_ID = 102;
+    ASK_FOR_INSTANCE_ID_REPLY = 103;
   }
   Type type = 1;
   uint32 from_node_id = 2;
@@ -50,7 +49,9 @@ message Message{
     MessageAccepted accepted = 105;
     MessageRejectAccept reject_accept = 106;
     MessageLearn learn = 107;
+    MessageAskForLearn ask_for_learn = 108;
+    MessageAskForLearnReply ask_for_learn_reply = 109;
+    MessageAskForInstanceID ask_for_instance_id = 110;
+    MessageAskForInstanceIDReply ask_for_instance_id_reply = 111;
   }
-  
-
 }

@@ -97,7 +97,7 @@ void Network::OnReceivePeerMessage(uint16_t peer_id, std::unique_ptr<char[]> pBu
   }
   else
   {
-    SPDLOG_DEBUG("Receive unknown message {}", peer_id);
+    SPDLOG_ERROR("Receive unknown message {}", peer_id);
   }
 }
 void Network::AddPeer(std::shared_ptr<Peer> pPeer)
@@ -113,6 +113,7 @@ void Network::AddChannel(std::shared_ptr<Channel> pChannel)
   auto pNewVec = std::make_shared<std::vector<std::shared_ptr<Channel>>>(*std::atomic_load(&m_pVecChannel));
   pNewVec->push_back(pChannel);
   std::atomic_store(&m_pVecChannel, pNewVec);
+  SPDLOG_DEBUG("Channel add for {}", pChannel->GetPeerId());
 }
 void Network::StartListner()
 {

@@ -87,7 +87,7 @@ int Accepter::OnReceiveMessage(const Message &oMessage)
     break;
   }
 }
-void Accepter::SetState(const paxoslib::persistence::StateProto &oState)
+void Accepter::SetState(const paxoslib::StateProto &oState)
 {
   m_oState.SetState(oState);
 }
