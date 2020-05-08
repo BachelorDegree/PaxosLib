@@ -71,6 +71,7 @@ public:
   }
   virtual int ExecuteForCheckpointReplay(uint64_t instance_id, const std::string &strChosenValue)
   {
+    return 0;
   }
   virtual uint64_t GetCheckpointInstanceID()
   {
@@ -88,15 +89,18 @@ public:
   }
   virtual int LockCheckpointState()
   {
+    return 0;
   }
   virtual void UnlockCheckpointState()
   {
   }
   virtual int LoadCheckpointState(const std::string &strPath, const std::vector<std::string> &vecFiles)
   {
+    return 0;
   }
   virtual int GetCheckpointState(std::string &strPath, std::vector<std::string> &vecFiles)
   {
+    return 0;
   }
 
 private:

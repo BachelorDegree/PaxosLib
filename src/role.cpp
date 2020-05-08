@@ -46,8 +46,7 @@ void Role::Broadcast(BroadcastReceiverType oReceiverType, BroadcastType oBroadca
 }
 int Role::OnMessage(const Message &oMessage)
 {
-  std::lock_guard<std::mutex> oGurad{m_oMessageMutex};
-  this->OnReceiveMessage(oMessage);
+  return this->OnReceiveMessage(oMessage);
 }
 void Role::SendMessageTo(uint32_t dwNodeId, const Message &oMessage)
 {

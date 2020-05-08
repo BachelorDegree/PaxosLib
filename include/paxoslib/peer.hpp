@@ -10,11 +10,11 @@
 #include <map>
 #include <set>
 #include <thread>
-#include "paxoslib/receiveeventlistner.hpp"
+#include "paxoslib/eventloop/eventreceiver.hpp"
+#include "paxoslib/eventloop/eventloop.hpp"
 #include "paxoslib/proto/message.pb.h"
 #include "paxoslib/proto/network.pb.h"
 #include "paxoslib/proto/role.pb.h"
-#include "paxoslib/util/lfqueue.hpp"
 namespace paxoslib::network
 {
 class Network;
@@ -25,7 +25,7 @@ public:
   {
     Message message;
   };
-  Peer(uint16_t peer_id, ReceiveEventListener *pEventListner, std::shared_ptr<Network> pNetwork);
+  Peer(uint16_t peer_id, eventloop::EventReceiver *pEventReceiver, eventloop::EventLoop *pEventLoop, std::shared_ptr<Network> pNetwork);
   uint32_t GetPeerID() const;
   const std::set<RoleType> &GetRoleTypes() const;
   void AddRoleType(RoleType);
@@ -35,14 +35,10 @@ public:
   void EnqueueReceiveMessage(const Message &oMessage);
 
 private:
-  void EmitEvent(int fd);
-  void WaitEvent(int fd);
-  int m_fd;
-  int m_event_fd;
-  uint16_t m_peer_id;;
-  util::LFQueue<ReceiveQueueItem> m_ReceiveQueue;
+  uint16_t m_peer_id;
   std::set<RoleType> m_setRoleTypes;
-  ReceiveEventListener *m_pEventListner;
+  eventloop::EventReceiver *m_pEventReceiver;
+  eventloop::EventLoop *m_pEventLoop;
   std::shared_ptr<Network> m_pNetwork;
   std::thread m_oReceiveEventWorkerThread;
   std::thread m_oSendWorkerThread;

@@ -66,9 +66,9 @@ int main()
   auto iTime = time(nullptr);
   int cnt = 0;
   int i = 0;
+  int oldi = 0;
   while (true)
   {
-
     kvsm::Request oReq;
     oReq.set_op(kvsm::Request_OpType_Put);
     oReq.set_key(std::to_string(i++));
@@ -77,12 +77,12 @@ int main()
     oReq.SerializeToString(&strReq);
     auto iRet = oInstance1.Propose(strReq);
     SPDLOG_INFO("Propose {} result: {}", i, iRet);
-    if (i > 50)
+    if (iTime != time(nullptr))
     {
-      SPDLOG_INFO("done 50");
-      sleep(10);
-      return 0;
+      SPDLOG_ERROR("{} {} {}", iTime, time(nullptr), i - oldi);
+      oldi = i;
+      iTime = time(nullptr);
     }
-    //return 0;
+    return 0;
   }
 }

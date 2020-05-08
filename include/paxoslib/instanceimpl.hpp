@@ -18,10 +18,12 @@
 #include "paxoslib/channel.hpp"
 #include "paxoslib/statemachine.hpp"
 #include "paxoslib/statemachinemgr.hpp"
+#include "paxoslib/eventloop/eventreceiver.hpp"
+#include "paxoslib/eventloop/eventloop.hpp"
 namespace paxoslib
 {
 
-class InstanceImpl : public network::ReceiveEventListener
+class InstanceImpl : public eventloop::EventReceiver
 {
 
 public:
@@ -30,6 +32,8 @@ public:
   virtual int OnProposerMessage(const Message &oMessage);
   virtual int OnAccepterMessage(const Message &oMessage);
   virtual int OnLearnerMessage(const Message &oMessage);
+  virtual void OnEvent(int iEventType, void *data);
+  virtual void OnTimeout(int iEventType, void *data);
   void NewInstance();
   uint16_t GetNodeId() const;
   int Propose(const std::string &value);
@@ -48,6 +52,7 @@ private:
   role::Proposer m_oProposer;
   role::Accepter m_oAccepter;
   role::Learner m_oLearner;
+  eventloop::EventLoop m_oEventLoop;
   Context m_oContext;
   friend class role::Learner;
   friend class role::Proposer;

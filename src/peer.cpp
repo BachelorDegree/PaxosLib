@@ -2,17 +2,15 @@
 #include "paxoslib/peer.hpp"
 #include "paxoslib/network.hpp"
 #include "sys/eventfd.h"
+#include "paxoslib/util/timetrace.hpp"
 namespace paxoslib::network
 {
-Peer::Peer(uint16_t peer_id, ReceiveEventListener *pEventListner, std::shared_ptr<Network> pNetwork)
+Peer::Peer(uint16_t peer_id, eventloop::EventReceiver *pEventReceiver, eventloop::EventLoop *pEventLoop, std::shared_ptr<Network> pNetwork)
 {
-  m_pEventListner = pEventListner;
+  m_pEventReceiver = pEventReceiver;
   m_peer_id = peer_id;
   m_pNetwork = pNetwork;
-  m_event_fd = eventfd(0, EFD_SEMAPHORE);
-  m_oReceiveEventWorkerThread = std::thread([&]() {
-    this->ReceiveEventWorker();
-  });
+  m_pEventLoop = pEventLoop;
 }
 uint32_t Peer::GetPeerID() const
 {
@@ -31,42 +29,19 @@ uint64_t Peer::GetRoleTypesMask() const
   }
   return ret;
 }
-void Peer::ReceiveEventWorker()
-{
-  ReceiveQueueItem oItem;
-  while (true)
-  {
-    WaitEvent(m_event_fd);
-    while (m_ReceiveQueue.pop_front(oItem))
-    {
-      m_pEventListner->OnMessage(oItem.message);
-    }
-  }
-}
 void Peer::SendMessage(const Message &oMessage)
 {
+  Trace::Mark(oMessage.id(), "Peer::SendMessage");
   this->m_pNetwork->SendMessageToPeer(m_peer_id, oMessage);
 }
 void Peer::EnqueueReceiveMessage(const Message &oMessage)
 {
-  ReceiveQueueItem oItem;
-  oItem.message = oMessage;
-  m_ReceiveQueue.push_back(std::move(oItem));
-  EmitEvent(m_event_fd);
+  auto pMessage = new Message(oMessage);
+  Trace::Mark(pMessage->id(), "Peer::EnqueueReceiveMessage");
+  m_pEventLoop->AddEventTail(m_pEventReceiver, 1, pMessage);
 }
 void Peer::AddRoleType(RoleType oType)
 {
   this->m_setRoleTypes.insert(oType);
-}
-void Peer::EmitEvent(int fd)
-{
-  uint64_t a;
-  a = 1;
-  write(fd, &a, sizeof(a));
-}
-void Peer::WaitEvent(int fd)
-{
-  uint64_t a;
-  read(fd, &a, sizeof(a));
 }
 }; // namespace paxoslib::network

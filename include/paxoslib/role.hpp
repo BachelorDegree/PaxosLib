@@ -11,7 +11,7 @@ namespace paxoslib
 class InstanceImpl;
 namespace role
 {
-class Role : public paxoslib::network::ReceiveEventListener
+class Role
 {
 public:
   Role(InstanceImpl *pInstance);

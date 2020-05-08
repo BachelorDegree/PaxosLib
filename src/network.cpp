@@ -3,6 +3,7 @@
 #include <mutex>
 #include <memory>
 #include <atomic>
+#include <chrono>
 #include <spdlog/spdlog.h>
 #include "paxoslib/proto/message.pb.h"
 #include "paxoslib/proto/config.pb.h"
@@ -10,6 +11,8 @@
 #include "paxoslib/channel.hpp"
 #include "paxoslib/peer.hpp"
 #include "sys/eventfd.h"
+#include <unistd.h>
+#include <netinet/tcp.h>
 #if __BIG_ENDIAN__
 #define htonll(x) (x)
 #define ntohll(x) (x)
@@ -17,6 +20,12 @@
 #define htonll(x) (((uint64_t)htonl((x)&0xFFFFFFFF) << 32) | htonl((x) >> 32))
 #define ntohll(x) (((uint64_t)ntohl((x)&0xFFFFFFFF) << 32) | ntohl((x) >> 32))
 #endif
+uint64_t GetSteadyClockMS()
+{
+  auto now = std::chrono::steady_clock::now();
+  uint64_t now_ms = (std::chrono::duration_cast<std::chrono::milliseconds>(now.time_since_epoch())).count();
+  return now_ms;
+}
 namespace paxoslib::network
 {
 Network::Network(const config::Config &oConfig) : m_epoll(1024)
@@ -29,7 +38,7 @@ Network::Network(const config::Config &oConfig) : m_epoll(1024)
   m_epoll.WatchReadable(m_event_fd);
   StartListner();
   auto thread = std::thread([&]() {
-    this->EventLoop();
+    this->NetworkEventLoop();
   });
   thread.detach();
 }
@@ -145,6 +154,8 @@ void Network::MakeChannelForPeer(uint16_t peer_id, const std::string &strIp, con
   {
     return;
   }
+  int val = 1;
+  setsockopt(fd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
   m_epoll.WatchDisconnect(fd);
   m_epoll.WatchReadable(fd);
   m_epoll.WatchWritable(fd);
@@ -159,7 +170,9 @@ auto as_integer(Enumeration const value)
 }
 void Network::EnqueueEvent(const Event &oEvent, bool bNoticeEventLoop)
 {
-  m_oEventQueue.push_back(oEvent);
+  auto a = oEvent;
+  a.time = GetSteadyClockMS();
+  m_oEventQueue.push_back(a);
   if (bNoticeEventLoop)
   {
     uint64_t signal = 1;
@@ -171,8 +184,9 @@ constexpr typename std::underlying_type<E>::type to_underlying(E e) noexcept
 {
   return static_cast<typename std::underlying_type<E>::type>(e);
 }
-void Network::EventLoop()
+void Network::NetworkEventLoop()
 {
+
   epoll_event *pEpollEvents = new epoll_event[20];
   while (true)
   {
@@ -231,6 +245,8 @@ void Network::EventLoop()
         {
           continue;
         }
+        int val = 1;
+        setsockopt(connect_fd, IPPROTO_TCP, TCP_NODELAY, &val, sizeof(val));
         m_epoll.WatchReadable(connect_fd);
         m_epoll.WatchWritable(connect_fd);
         m_epoll.WatchDisconnect(connect_fd);
@@ -264,6 +280,10 @@ void Network::EventLoop()
         }
         break;
       }
+      }
+      if (GetSteadyClockMS() - oEvent.time > 2)
+      {
+        SPDLOG_ERROR("time: {}", GetSteadyClockMS() - oEvent.time);
       }
     }
   }

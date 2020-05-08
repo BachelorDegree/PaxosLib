@@ -5,6 +5,7 @@ file(GLOB HEADER_LIST ${HEADER_LIST} "${PaxosLib_SOURCE_DIR}/include/paxoslib/ro
 file(GLOB HEADER_LIST ${HEADER_LIST} "${PaxosLib_SOURCE_DIR}/include/paxoslib/proto/*.h")
 file(GLOB HEADER_LIST ${HEADER_LIST} "${PaxosLib_SOURCE_DIR}/include/paxoslib/util/*.hpp")
 file(GLOB HEADER_LIST ${HEADER_LIST} "${PaxosLib_SOURCE_DIR}/include/paxoslib/persistence/*.hpp")
+file(GLOB HEADER_LIST ${HEADER_LIST} "${PaxosLib_SOURCE_DIR}/include/paxoslib/eventloop/*.hpp")
 file(GLOB SOURCE_LIST ${SOURCE_LIST}  "${PaxosLib_SOURCE_DIR}/src/*.cpp")
 file(GLOB SOURCE_LIST ${SOURCE_LIST}  "${PaxosLib_SOURCE_DIR}/src/proto/*.cc")
 add_library(paxoslib_library ${SOURCE_LIST} ${HEADER_LIST})

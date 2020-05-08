@@ -61,6 +61,7 @@ void ChannelStream::OnReadable()
 {
   while (true)
   {
+
     switch (m_ReceiveState.state)
     {
     case 0:
@@ -68,6 +69,7 @@ void ChannelStream::OnReadable()
     case 2:
     case 3:
     {
+
       ssize_t size = recv(m_fd, &m_ReceiveState.size + m_ReceiveState.state, 4 - m_ReceiveState.state, MSG_DONTWAIT);
       if (size <= 0)
       {
@@ -82,6 +84,7 @@ void ChannelStream::OnReadable()
       m_ReceiveState.pBuffer = std::unique_ptr<char[]>(new char[m_ReceiveState.size]);
       m_ReceiveState.read = 0;
       m_ReceiveState.state = 5;
+
       break;
     }
     case 5:
@@ -136,6 +139,7 @@ void ChannelStream::OnWritableOrTaskArrive()
       m_SendState.pBuffer = std::move(oItem.pBuffer);
       m_SendState.size = oItem.size;
       m_SendState.write = 0;
+
       break;
     }
     case 1:
@@ -144,7 +148,7 @@ void ChannelStream::OnWritableOrTaskArrive()
     case 4:
     {
       uint32_t n_size = htonl(m_SendState.size);
-      ssize_t size = send(m_fd, &n_size + m_SendState.state - 1, 4 - m_SendState.state + 1, MSG_DONTWAIT);
+      ssize_t size = send(m_fd, &n_size + m_SendState.state - 1, 4 - m_SendState.state + 1, MSG_DONTWAIT | MSG_MORE);
       if (size <= 0)
       {
         return;
@@ -176,6 +180,7 @@ void ChannelStream::OnWritableOrTaskArrive()
       auto pNetwork = this->m_pNetwork.lock();
       m_SendState.state = 0;
       m_SendState.pBuffer.release();
+
       break;
     }
     }

@@ -12,6 +12,7 @@ namespace paxoslib
 {
 class Message;
 };
+
 namespace paxoslib::network
 {
 class Channel;
@@ -47,8 +48,9 @@ private:
   {
     int fd;
     EventType type;
+    uint64_t time;
   };
-  void EventLoop();
+  void NetworkEventLoop();
   void EnqueueEvent(const Event &oEvent, bool bNoticeEventLoop);
   std::shared_ptr<std::vector<std::shared_ptr<Channel>>> m_pVecChannel;
   std::shared_ptr<std::vector<std::shared_ptr<Peer>>> m_pVecPeer;

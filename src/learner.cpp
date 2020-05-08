@@ -13,24 +13,26 @@ Learner::Learner(InstanceImpl *pInstance, Context &oContext) : Role(pInstance), 
 }
 int Learner::OnReceiveMessage(const Message &oMessage)
 {
+  int iRet;
   switch (oMessage.type())
   {
   case Message_Type::Message_Type_LEARN:
-    this->OnLearn(oMessage);
+    iRet = this->OnLearn(oMessage);
     break;
   case Message_Type::Message_Type_ASK_FOR_INSTANCE_ID:
-    this->OnAskForInstanceID(oMessage);
+    iRet = this->OnAskForInstanceID(oMessage);
     break;
   case Message_Type::Message_Type_ASK_FOR_INSTANCE_ID_REPLY:
-    this->OnAskForInstanceIDReply(oMessage);
+    iRet = this->OnAskForInstanceIDReply(oMessage);
     break;
   case Message_Type::Message_Type_ASK_FOR_LEARN_REPLY:
-    this->OnAskForLearnReply(oMessage);
+    iRet = this->OnAskForLearnReply(oMessage);
     break;
   case Message_Type::Message_Type_ASK_FOR_LEARN:
-    this->OnAskForLearn(oMessage);
+    iRet = this->OnAskForLearn(oMessage);
     break;
   }
+  return iRet;
 }
 int Learner::OnLearn(const Message &oMessage)
 {
@@ -42,6 +44,7 @@ int Learner::OnLearn(const Message &oMessage)
     return 0;
   }
   m_bLearned = true;
+  return 0;
 }
 bool Learner::IsLearned() const
 {
@@ -85,6 +88,7 @@ int Learner::OnAskForLearn(const Message &oMessage)
   SPDLOG_DEBUG("Reply ask for learn. from:{} length:{}", oMessage.ask_for_learn().from_instance_id(), pStates->size());
   oNewMessage.mutable_ask_for_learn_reply()->set_my_instance_id(GetInstanceID());
   this->SendMessageTo(oMessage.from_node_id(), oNewMessage);
+  return 0;
 }
 void Learner::RejectAskForLearn(const Message &oMessage)
 {
@@ -120,6 +124,7 @@ int Learner::OnAskForLearnReply(const Message &oMessage)
     this->m_pInstance->NewInstance();
   }
   this->OnSeenOthersInstanceID(oMessage.from_node_id(), oMessage.ask_for_learn_reply().my_instance_id());
+  return 0;
 }
 int Learner::OnAskForInstanceID(const Message &oMessage)
 {
@@ -129,11 +134,13 @@ int Learner::OnAskForInstanceID(const Message &oMessage)
   oNewMessage.set_instance_id(GetInstanceID());
   oNewMessage.mutable_ask_for_instance_id_reply()->set_my_instance_id(GetInstanceID());
   this->SendMessageTo(oMessage.from_node_id(), oNewMessage);
+  return 0;
 }
 
 int Learner::OnAskForInstanceIDReply(const Message &oMessage)
 {
   OnSeenOthersInstanceID(oMessage.from_node_id(), oMessage.ask_for_instance_id_reply().my_instance_id());
+  return 0;
 }
 int Learner::AskForLearn(uint16_t node_id)
 {
@@ -142,6 +149,7 @@ int Learner::AskForLearn(uint16_t node_id)
   oNewMessage.set_instance_id(GetInstanceID());
   oNewMessage.mutable_ask_for_learn()->set_from_instance_id(GetInstanceID());
   this->SendMessageTo(node_id, oNewMessage);
+  return 0;
 }
 int Learner::AskForInstanceID()
 {
@@ -150,6 +158,7 @@ int Learner::AskForInstanceID()
   oNewMessage.set_instance_id(GetInstanceID());
   oNewMessage.mutable_ask_for_instance_id()->set_my_instance_id(GetInstanceID());
   this->Broadcast(BORADCAST_RECEIVER_TYPE_LEARNER, BROAD_CAST_TYPE_ALL, oNewMessage);
+  return 0;
 }
 void Learner::OnSeenOthersInstanceID(uint16_t node_id, uint64_t instance_id)
 {

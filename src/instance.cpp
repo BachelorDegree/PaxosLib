@@ -2,6 +2,7 @@
 #include <memory>
 #include <iostream>
 #include <spdlog/spdlog.h>
+
 #include "paxoslib/instanceimpl.hpp"
 #include "paxoslib/proto/message.pb.h"
 #include "paxoslib/instance.hpp"
@@ -13,7 +14,7 @@
 #include "paxoslib/network.hpp"
 #include "paxoslib/channel.hpp"
 #include "sys/eventfd.h"
-
+#include "paxoslib/util/timetrace.hpp"
 namespace paxoslib
 {
 
@@ -25,7 +26,7 @@ InstanceImpl::InstanceImpl(Instance *pInstance, const paxoslib::config::Config &
   {
     if (oPeer.id() != oConfig.node_id())
     {
-      auto pPeer = std::make_shared<network::Peer>(oPeer.id(), this, pNetwork);
+      auto pPeer = std::make_shared<network::Peer>(oPeer.id(), this, &m_oEventLoop, pNetwork);
       pPeer->AddRoleType(RoleType::ROLE_TYPE_ACCEPTER);
       pPeer->AddRoleType(RoleType::ROLE_TYPE_PROPOSER);
       pPeer->AddRoleType(RoleType::ROLE_TYPE_LEARNER);
@@ -34,7 +35,7 @@ InstanceImpl::InstanceImpl(Instance *pInstance, const paxoslib::config::Config &
       m_vecPeers.push_back(pPeer);
     }
   }
-  auto pPeer = std::make_shared<network::Peer>(m_ddwNodeId, this, pNetwork);
+  auto pPeer = std::make_shared<network::Peer>(m_ddwNodeId, this, &m_oEventLoop, pNetwork);
   pPeer->AddRoleType(RoleType::ROLE_TYPE_ACCEPTER);
   pPeer->AddRoleType(RoleType::ROLE_TYPE_PROPOSER);
   pPeer->AddRoleType(RoleType::ROLE_TYPE_LEARNER);
@@ -84,37 +85,59 @@ InstanceImpl::InstanceImpl(Instance *pInstance, const paxoslib::config::Config &
     }
     this->NewInstance();
   }
-  SPDLOG_DEBUG("Instance Begin from {}", this->m_oAccepter.GetInstanceID());
+  SPDLOG_INFO("Instance Begin from {}", this->m_oAccepter.GetInstanceID());
   m_oLearner.AskForInstanceID();
+  m_oEventLoop.Start();
+}
+void InstanceImpl::OnEvent(int iEventType, void *data)
+{
+  switch (iEventType)
+  {
+  case 1:
+  {
+    Message *pMessage = reinterpret_cast<Message *>(data);
+    this->OnMessage(*pMessage);
+    delete pMessage;
+    break;
+  }
+  default:
+    SPDLOG_ERROR("Unknown event");
+  }
+}
+void InstanceImpl::OnTimeout(int iEventType, void *data)
+{
 }
 int InstanceImpl::OnMessage(const Message &oMessage)
 {
+  Trace::Mark(oMessage.id(), "InstanceImpl::OnMessage");
+  int iRet = 0;
   switch (oMessage.type())
   {
   case Message_Type::Message_Type_PROMISED:
   case Message_Type::Message_Type_REJECT_PREOMISE:
   case Message_Type::Message_Type_ACCEPTED:
   case Message_Type::Message_Type_REJECT_ACCEPT:
-    OnProposerMessage(oMessage);
+    iRet = OnProposerMessage(oMessage);
     break;
   case Message_Type::Message_Type_ACCEPT:
   case Message_Type::Message_Type_PREAPRE:
-    OnAccepterMessage(oMessage);
+    iRet = OnAccepterMessage(oMessage);
     break;
   case Message_Type::Message_Type_LEARN:
   case Message_Type::Message_Type_ASK_FOR_INSTANCE_ID:
   case Message_Type::Message_Type_ASK_FOR_INSTANCE_ID_REPLY:
   case Message_Type::Message_Type_ASK_FOR_LEARN_REPLY:
   case Message_Type::Message_Type_ASK_FOR_LEARN:
-    OnLearnerMessage(oMessage);
+    iRet = OnLearnerMessage(oMessage);
     break;
   }
+  return iRet;
 }
 int InstanceImpl::OnProposerMessage(const Message &oMessage)
 {
   if (oMessage.instance_id() != m_oProposer.GetInstanceID())
   {
-    SPDLOG_ERROR("Not same Instance. my:{} his:{}", m_oProposer.GetInstanceID(), oMessage.instance_id());
+    //SPDLOG_ERROR("Not same Instance. my:{} his:{}", m_oProposer.GetInstanceID(), oMessage.instance_id());
     return -1;
   }
   return m_oProposer.OnMessage(oMessage);
@@ -164,9 +187,15 @@ int InstanceImpl::OnLearnerMessage(const Message &oMessage)
     }
     if (oMessage.from_node_id() == GetNodeId())
     {
-      m_oContext.CommitResult(true, m_oAccepter.GetInstanceID(), m_oAccepter.GetState().GetAcceptedProposal().value());
+      auto id = m_oAccepter.GetInstanceID();
+      auto value = m_oAccepter.GetState().GetAcceptedProposal().value();
+      NewInstance();
+      m_oContext.CommitResult(true, id, value);
     }
-    NewInstance();
+    else
+    {
+      NewInstance();
+    }
   }
   return 0;
 }

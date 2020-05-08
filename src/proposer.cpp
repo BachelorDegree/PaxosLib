@@ -28,11 +28,13 @@ int Proposer::OnPrepareFailed()
 {
   SPDLOG_DEBUG("prepare failed");
   m_oContext.CommitResult(false, GetInstanceID(), "");
+  return 0;
 }
 int Proposer::OnAcceptFailed()
 {
   SPDLOG_DEBUG("accept failed");
   m_oContext.CommitResult(false, GetInstanceID(), "");
+  return 0;
 }
 int Proposer::Propose(const Proposal &oProposal)
 {
@@ -47,6 +49,7 @@ int Proposer::Propose(const Proposal &oProposal)
 
   this->m_oBallot.ResetBallot(3);
   this->Broadcast(BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_ACCEPTER, BroadcastType::BROAD_CAST_TYPE_ALL, oMessage);
+  return 0;
 }
 int Proposer::Accept(const Proposal &oProposal)
 {
@@ -56,6 +59,7 @@ int Proposer::Accept(const Proposal &oProposal)
   oMessage.mutable_accept()->mutable_proposal()->CopyFrom(oProposal);
   oMessage.mutable_accept()->mutable_proposal()->set_id(this->GetProposalId());
   this->Broadcast(BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_ACCEPTER, BroadcastType::BROAD_CAST_TYPE_ALL, oMessage);
+  return 0;
 }
 int Proposer::Learn(const Proposal &oProposal)
 {
@@ -65,6 +69,7 @@ int Proposer::Learn(const Proposal &oProposal)
   oMessage.mutable_accept()->mutable_proposal()->CopyFrom(oProposal);
   oMessage.mutable_accept()->mutable_proposal()->set_id(this->GetProposalId());
   this->Broadcast(BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_LEARNER, BroadcastType::BROAD_CAST_TYPE_ALL, oMessage);
+  return 0;
 }
 int Proposer::OnPromised(const Message &oMessage)
 {
@@ -91,6 +96,7 @@ int Proposer::OnPromised(const Message &oMessage)
     m_oBallot.ResetBallot(3);
     this->Accept(m_oProposal);
   }
+  return 0;
 }
 int Proposer::OnRejectPromise(const Message &oMessage)
 {
@@ -107,6 +113,7 @@ int Proposer::OnRejectPromise(const Message &oMessage)
     m_oStage = Stage::Idle;
     this->OnPrepareFailed();
   }
+  return 0;
 }
 int Proposer::OnAccepted(const Message &oMessage)
 {
@@ -124,6 +131,7 @@ int Proposer::OnAccepted(const Message &oMessage)
     m_oStage = Stage::Idle;
     this->Learn(m_oProposal);
   }
+  return 0;
 }
 int Proposer::OnRejectAccept(const Message &oMessage)
 {
@@ -140,6 +148,7 @@ int Proposer::OnRejectAccept(const Message &oMessage)
     m_oStage = Stage::Idle;
     this->OnAcceptFailed();
   }
+  return 0;
 }
 int Proposer::OnReceiveMessage(const Message &oMessage)
 {
@@ -158,6 +167,7 @@ int Proposer::OnReceiveMessage(const Message &oMessage)
     this->OnRejectAccept(oMessage);
     break;
   }
+  return 0;
 }
 void Proposer::InitForNewInstance()
 {

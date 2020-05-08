@@ -74,6 +74,7 @@ int Accepter::OnAccept(const Message &oMessage)
   {
     this->ReplyRejectAccept(oMessage);
   }
+  return 0;
 }
 int Accepter::OnReceiveMessage(const Message &oMessage)
 {
@@ -86,6 +87,7 @@ int Accepter::OnReceiveMessage(const Message &oMessage)
     this->OnPrepare(oMessage);
     break;
   }
+  return 0;
 }
 void Accepter::SetState(const paxoslib::StateProto &oState)
 {
