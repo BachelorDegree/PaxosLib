@@ -111,8 +111,14 @@ void EventLoop::ProcessTimeout()
 void EventLoop::ProcessEvent()
 {
   EventItem *pItem;
+  //add stub to prevent deadloop
+  m_qEvent.push_back(nullptr);
   while (m_qEvent.pop_front(pItem))
   {
+    if (pItem == nullptr)
+    {
+      break;
+    }
     pItem->pEventReceiver->OnEvent(pItem->iEventType, pItem->data);
     delete pItem;
   }
