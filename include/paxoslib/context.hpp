@@ -9,7 +9,7 @@ class Context
 public:
   Context();
   void Reset(uint64_t id, const std::string &value);
-  int WaitAndGetResult();
+  int WaitAndGetResult(uint64_t &id);
   void CommitResult(bool bSuccess, uint64_t id, const std::string &value);
 
 private:

@@ -26,9 +26,8 @@ class Instance
 {
 public:
   Instance(const paxoslib::config::Config &oConfig, std::shared_ptr<network::Network> pNetwork, std::unique_ptr<paxoslib::persistence::Storage> pStorage, std::shared_ptr<StateMachineMgr> pStateMachineMgr);
-  uint64_t GetInstanceId() const;
   uint16_t GetNodeId() const;
-  int Propose(const std::string &);
+  int Propose(const std::string &, uint64_t &ddwInstanceId);
   std::vector<std::shared_ptr<network::Peer>> GetPeers() const;
   ~Instance();
 

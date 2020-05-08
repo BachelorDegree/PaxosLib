@@ -213,13 +213,13 @@ uint16_t InstanceImpl::GetNodeId() const
 {
   return this->m_ddwNodeId;
 }
-int InstanceImpl::Propose(const std::string &value)
+int InstanceImpl::Propose(const std::string &value, uint64_t &ddwInstanceId)
 {
   m_oContext.Reset(this->m_oProposer.GetInstanceID(), value);
   Proposal oProposal;
   oProposal.set_value(value);
   m_oProposer.Propose(oProposal);
-  return m_oContext.WaitAndGetResult();
+  return m_oContext.WaitAndGetResult(ddwInstanceId);
 }
 std::vector<std::shared_ptr<network::Peer>> InstanceImpl::GetPeers() const
 {
@@ -241,9 +241,9 @@ std::vector<std::shared_ptr<network::Peer>> Instance::GetPeers() const
   return this->pImpl->GetPeers();
 }
 uint16_t Instance::GetNodeId() const { return this->pImpl->GetNodeId(); }
-int Instance::Propose(const std::string &value)
+int Instance::Propose(const std::string &value, uint64_t &ddwInstanceId)
 {
-  return this->pImpl->Propose(value);
+  return this->pImpl->Propose(value, ddwInstanceId);
 }
 Instance::~Instance()
 {

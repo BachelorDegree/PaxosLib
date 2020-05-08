@@ -36,7 +36,7 @@ public:
   virtual void OnTimeout(int iEventType, void *data);
   void NewInstance();
   uint16_t GetNodeId() const;
-  int Propose(const std::string &value);
+  int Propose(const std::string &value, uint64_t &ddwInstanceId);
 
   std::vector<std::shared_ptr<network::Peer>> GetPeers() const;
 

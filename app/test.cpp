@@ -75,14 +75,14 @@ int main()
     oReq.set_value(std::to_string(i++));
     std::string strReq;
     oReq.SerializeToString(&strReq);
-    auto iRet = oInstance1.Propose(strReq);
+    uint64_t id;
+    auto iRet = oInstance1.Propose(strReq, id);
     SPDLOG_INFO("Propose {} result: {}", i, iRet);
     if (iTime != time(nullptr))
     {
-      SPDLOG_ERROR("{} {} {}", iTime, time(nullptr), i - oldi);
+      SPDLOG_ERROR("{} {} {} {}", iTime, time(nullptr), i - oldi, id);
       oldi = i;
       iTime = time(nullptr);
     }
-    return 0;
   }
 }

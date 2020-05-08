@@ -9,10 +9,11 @@ void Context::Reset(uint64_t id, const std::string &value)
   m_ddwInstanceId = id;
   m_strValue = value;
 }
-int Context::WaitAndGetResult()
+int Context::WaitAndGetResult(uint64_t &id)
 {
   std::unique_lock<std::mutex> lk(m_mutex);
   m_cv.wait(lk);
+  id = m_ddwInstanceId;
   return m_iRet;
 }
 
