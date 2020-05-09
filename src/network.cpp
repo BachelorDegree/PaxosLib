@@ -281,7 +281,7 @@ void Network::NetworkEventLoop()
         break;
       }
       }
-      if (GetSteadyClockMS() - oEvent.time > 2)
+      if (GetSteadyClockMS() - oEvent.time > 10)
       {
         SPDLOG_ERROR("time: {}", GetSteadyClockMS() - oEvent.time);
       }

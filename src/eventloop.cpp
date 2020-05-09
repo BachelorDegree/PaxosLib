@@ -1,6 +1,7 @@
 #include <thread>
 #include <unistd.h>
 #include <chrono>
+#include <spdlog/spdlog.h>
 #include "paxoslib/eventloop/eventloop.hpp"
 #include "paxoslib/eventloop/eventreceiver.hpp"
 namespace paxoslib
@@ -54,7 +55,6 @@ void EventLoop::AddEventTail(EventReceiver *pEventReceiver, int iEventType, void
 }
 uint64_t EventLoop::AddTimeout(EventReceiver *pEventReceiver, uint64_t msTime, int iEventType, void *data)
 {
-
   auto pItem = new TimeoutItem;
   pItem->data = data;
   pItem->iEventType = iEventType;
@@ -85,7 +85,7 @@ paxoslib::eventloop::EventLoop::TimeoutItem *EventLoop::PopTimeoutItem()
       return nullptr;
     }
     auto oPair = m_heapTimeout.top();
-    if (oPair.first < GetSteadyClockMS())
+    if (oPair.first > GetSteadyClockMS())
     {
       return nullptr;
     }

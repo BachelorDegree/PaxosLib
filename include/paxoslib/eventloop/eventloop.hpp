@@ -26,7 +26,7 @@ private:
   uint64_t m_ddwTimeoutIdCnt;
   util::LFQueue<EventItem *> m_qEvent;
   std::map<uint32_t, TimeoutItem *> m_mapTimeoutItem;
-  std::priority_queue<std::pair<uint64_t, uint32_t>> m_heapTimeout;
+  std::priority_queue<std::pair<uint64_t, uint32_t>, std::vector<std::pair<uint64_t, uint32_t>>, std::greater<std::pair<uint64_t, uint32_t>>> m_heapTimeout;
   void ProcessTimeout();
   void ProcessEvent();
   TimeoutItem *PopTimeoutItem();

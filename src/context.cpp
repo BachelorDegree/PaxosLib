@@ -6,6 +6,7 @@ namespace paxoslib
 Context::Context() {}
 void Context::Reset(uint64_t id, const std::string &value)
 {
+  bCommited = false;
   m_ddwInstanceId = id;
   m_strValue = value;
 }
@@ -20,6 +21,11 @@ int Context::WaitAndGetResult(uint64_t &id)
 void Context::CommitResult(bool bSuccess, uint64_t id, const std::string &value)
 {
   std::unique_lock<std::mutex> lk(m_mutex);
+  if (bCommited)
+  {
+    SPDLOG_ERROR("already commited {}", id);
+  }
+  bCommited = true;
   bool bResult = true;
   if (!bSuccess)
   {

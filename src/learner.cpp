@@ -3,6 +3,7 @@
 #include "paxoslib/instanceimpl.hpp"
 #include "paxoslib/proto/message.pb.h"
 #include "paxoslib/persistence/state.hpp"
+#include "paxoslib/eventloop/eventtype.hpp"
 namespace paxoslib::role
 {
 Learner::Learner(InstanceImpl *pInstance, Context &oContext) : Role(pInstance), m_oContext(oContext)
@@ -10,6 +11,7 @@ Learner::Learner(InstanceImpl *pInstance, Context &oContext) : Role(pInstance), 
   m_bLearned = false;
   m_ddwSeenLargestInstanceId = 0;
   m_ddwSeenLatestNodeId = 0;
+  m_bIsAskingForLearn = false;
 }
 int Learner::OnReceiveMessage(const Message &oMessage)
 {
@@ -67,6 +69,7 @@ int Learner::OnAskForLearn(const Message &oMessage)
   auto pStates = oNewMessage.mutable_ask_for_learn_reply()->mutable_states();
   auto pStorage = m_pInstance->m_pStorage.get();
   paxoslib::persistence::State oState(pStorage);
+  int cnt = 0;
   for (uint64_t id = oMessage.ask_for_learn().from_instance_id(); id < GetInstanceID(); id++)
   {
     int iRet = oState.LoadState(id);
@@ -75,7 +78,7 @@ int Learner::OnAskForLearn(const Message &oMessage)
       SPDLOG_ERROR("Load state failed id:{} ret:{}", id, iRet);
       return iRet;
     }
-    if (id != oMessage.ask_for_learn().from_instance_id() && oState.GetAcceptedProposal().ByteSize() + oNewMessage.ByteSize() > 30 * 1024 * 1024)
+    if (id != oMessage.ask_for_learn().from_instance_id() && oState.GetAcceptedProposal().ByteSize() + oNewMessage.ByteSize() > 1024 * 1024)
     {
       SPDLOG_DEBUG("Size limit exceed. skip");
       break;
@@ -83,7 +86,6 @@ int Learner::OnAskForLearn(const Message &oMessage)
     auto oStateProto = oState.GetState();
     oStateProto.set_id(id);
     pStates->Add()->CopyFrom(oStateProto);
-    break;
   }
   SPDLOG_DEBUG("Reply ask for learn. from:{} length:{}", oMessage.ask_for_learn().from_instance_id(), pStates->size());
   oNewMessage.mutable_ask_for_learn_reply()->set_my_instance_id(GetInstanceID());
@@ -123,6 +125,8 @@ int Learner::OnAskForLearnReply(const Message &oMessage)
     SPDLOG_DEBUG("Learn value id: {}", oStateProto.id());
     this->m_pInstance->NewInstance();
   }
+  SPDLOG_ERROR("Learn to {} {} {} {}", GetInstanceID(), oMessage.id(), oMessage.from_node_id(), time(nullptr));
+  m_bIsAskingForLearn = false;
   this->OnSeenOthersInstanceID(oMessage.from_node_id(), oMessage.ask_for_learn_reply().my_instance_id());
   return 0;
 }
@@ -144,6 +148,11 @@ int Learner::OnAskForInstanceIDReply(const Message &oMessage)
 }
 int Learner::AskForLearn(uint16_t node_id)
 {
+  if (m_bIsAskingForLearn)
+  {
+    return 0;
+  }
+  m_bIsAskingForLearn = true;
   Message oNewMessage;
   oNewMessage.set_type(Message_Type_ASK_FOR_LEARN);
   oNewMessage.set_instance_id(GetInstanceID());
@@ -158,6 +167,7 @@ int Learner::AskForInstanceID()
   oNewMessage.set_instance_id(GetInstanceID());
   oNewMessage.mutable_ask_for_instance_id()->set_my_instance_id(GetInstanceID());
   this->Broadcast(BORADCAST_RECEIVER_TYPE_LEARNER, BROAD_CAST_TYPE_ALL, oNewMessage);
+  m_pInstance->AddTimeout(10000, eventloop::EventType::LearnerAskForInstanceIdLoop, 0);
   return 0;
 }
 void Learner::OnSeenOthersInstanceID(uint16_t node_id, uint64_t instance_id)
@@ -167,6 +177,7 @@ void Learner::OnSeenOthersInstanceID(uint16_t node_id, uint64_t instance_id)
     this->m_ddwSeenLargestInstanceId = instance_id;
     this->m_ddwSeenLatestNodeId = node_id;
   }
+
   if (GetInstanceID() < this->m_ddwSeenLargestInstanceId)
   {
     this->AskForLearn(this->m_ddwSeenLatestNodeId);

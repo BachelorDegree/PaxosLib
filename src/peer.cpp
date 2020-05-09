@@ -3,6 +3,7 @@
 #include "paxoslib/network.hpp"
 #include "sys/eventfd.h"
 #include "paxoslib/util/timetrace.hpp"
+#include "paxoslib/eventloop/eventtype.hpp"
 namespace paxoslib::network
 {
 Peer::Peer(uint16_t peer_id, eventloop::EventReceiver *pEventReceiver, eventloop::EventLoop *pEventLoop, std::shared_ptr<Network> pNetwork)
@@ -38,7 +39,7 @@ void Peer::EnqueueReceiveMessage(const Message &oMessage)
 {
   auto pMessage = new Message(oMessage);
   Trace::Mark(pMessage->id(), "Peer::EnqueueReceiveMessage");
-  m_pEventLoop->AddEventTail(m_pEventReceiver, 1, pMessage);
+  m_pEventLoop->AddEventTail(m_pEventReceiver, eventloop::EventType::InstanceMessage, pMessage);
 }
 void Peer::AddRoleType(RoleType oType)
 {

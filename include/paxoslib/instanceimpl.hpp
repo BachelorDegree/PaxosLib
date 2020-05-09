@@ -34,6 +34,8 @@ public:
   virtual int OnLearnerMessage(const Message &oMessage);
   virtual void OnEvent(int iEventType, void *data);
   virtual void OnTimeout(int iEventType, void *data);
+  uint64_t AddTimeout(uint64_t msTime, int iEventType, void *data);
+  void RemoveTimeout(uint64_t id);
   void NewInstance();
   uint16_t GetNodeId() const;
   int Propose(const std::string &value, uint64_t &ddwInstanceId);
@@ -45,6 +47,7 @@ private:
   int OnLearnNewValue(uint64_t id, const std::string &value);
   uint16_t m_ddwNodeId;
   int m_event_fd;
+  uint64_t m_propose_timeout_id;
   std::vector<std::shared_ptr<network::Peer>> m_vecPeers;
   std::shared_ptr<network::Network> m_pNetwork;
   std::unique_ptr<paxoslib::persistence::Storage> m_pStorage;

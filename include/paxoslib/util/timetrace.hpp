@@ -16,12 +16,13 @@ public:
   }
   static void Mark(uint64_t id, std::string str)
   {
+    return;
     static std::mutex oMutex;
     static std::map<uint64_t, uint64_t> oMap;
     std::lock_guard<std::mutex> oGuard(oMutex);
     if (oMap.count(id) > 0 && GetSteadyClockMS() - oMap[id] > 2)
     {
-      SPDLOG_ERROR("Trace: {} {}ms {}", id, GetSteadyClockMS() - oMap[id], str);
+      //SPDLOG_ERROR("Trace: {} {}ms {}", id, GetSteadyClockMS() - oMap[id], str);
     }
     oMap[id] = GetSteadyClockMS();
   }

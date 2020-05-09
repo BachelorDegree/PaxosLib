@@ -14,6 +14,7 @@ public:
 
 private:
   bool IsChosenValue(uint64_t id, const std::string &value) const;
+  bool bCommited;
   uint64_t m_ddwInstanceId;
   int m_iRet;
   std::string m_strValue;
