@@ -15,6 +15,7 @@ void Role::Broadcast(BroadcastReceiverType oReceiverType, BroadcastType oBroadca
   Message oNewMessage{oMessage};
   oNewMessage.set_id(g_msgid++);
   oNewMessage.set_from_node_id(this->m_pInstance->GetNodeId());
+  oNewMessage.set_group_index(this->m_pInstance->GetGroupIndex());
   SPDLOG_DEBUG("Broadcast {}", oNewMessage.ShortDebugString());
   const std::map<BroadcastReceiverType, std::set<RoleType>> mapReceiver{
       {BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_ACCEPTER, {RoleType::ROLE_TYPE_ACCEPTER}}, {BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_PROPOSER, {RoleType::ROLE_TYPE_PROPOSER}}, {BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_LEARNER, {RoleType::ROLE_TYPE_LEARNER}}};
@@ -52,6 +53,7 @@ void Role::SendMessageTo(uint32_t dwNodeId, const Message &oMessage)
 {
   Message oNewMessage{oMessage};
   oNewMessage.set_id(g_msgid++);
+  oNewMessage.set_group_index(this->m_pInstance->GetGroupIndex());
   for (auto pPeer : m_pInstance->GetPeers())
   {
     if (pPeer->GetPeerID() == dwNodeId)

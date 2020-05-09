@@ -2,6 +2,7 @@
 #include <unistd.h>
 #include <chrono>
 #include <spdlog/spdlog.h>
+#include <sys/prctl.h>
 #include "paxoslib/eventloop/eventloop.hpp"
 #include "paxoslib/eventloop/eventreceiver.hpp"
 namespace paxoslib
@@ -35,6 +36,7 @@ EventLoop::~EventLoop() {}
 void EventLoop::Start()
 {
   auto thread = std::thread([&]() {
+    prctl(PR_SET_NAME, "eventloop");
     while (true)
     {
       this->ProcessTimeout();

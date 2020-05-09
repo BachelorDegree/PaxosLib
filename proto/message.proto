@@ -41,6 +41,7 @@ message Message {
   uint32 to_node_id = 3;
   uint64 instance_id = 4;
   uint64 id = 5;
+  uint32 group_index = 6;
   oneof message_oneof {
     MessagePrepare prepare = 101;
     MessagePromised promised = 102;

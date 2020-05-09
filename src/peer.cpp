@@ -6,12 +6,11 @@
 #include "paxoslib/eventloop/eventtype.hpp"
 namespace paxoslib::network
 {
-Peer::Peer(uint16_t peer_id, eventloop::EventReceiver *pEventReceiver, eventloop::EventLoop *pEventLoop, std::shared_ptr<Network> pNetwork)
+Peer::Peer(uint16_t peer_id, network::PackageReceiver *pPackageReceiver, std::shared_ptr<Network> pNetwork)
 {
-  m_pEventReceiver = pEventReceiver;
+  m_pPackageReceiver = pPackageReceiver;
   m_peer_id = peer_id;
   m_pNetwork = pNetwork;
-  m_pEventLoop = pEventLoop;
 }
 uint32_t Peer::GetPeerID() const
 {
@@ -33,13 +32,16 @@ uint64_t Peer::GetRoleTypesMask() const
 void Peer::SendMessage(const Message &oMessage)
 {
   Trace::Mark(oMessage.id(), "Peer::SendMessage");
-  this->m_pNetwork->SendMessageToPeer(m_peer_id, oMessage);
+  uint32_t iGroupIndex = htonl(oMessage.group_index());
+  uint32_t size = oMessage.ByteSizeLong() + sizeof(iGroupIndex);
+  char *pBuffer = new char[size];
+  memcpy(pBuffer, (void *)&iGroupIndex, sizeof(iGroupIndex));
+  oMessage.SerializeToArray(pBuffer + sizeof(iGroupIndex), size - sizeof(iGroupIndex));
+  this->m_pNetwork->SendMessageToPeer(m_peer_id, std::unique_ptr<char[]>(pBuffer), size);
 }
-void Peer::EnqueueReceiveMessage(const Message &oMessage)
+int Peer::EnqueueReceiveMessage(std::unique_ptr<char[]> pBuffer, uint32_t size)
 {
-  auto pMessage = new Message(oMessage);
-  Trace::Mark(pMessage->id(), "Peer::EnqueueReceiveMessage");
-  m_pEventLoop->AddEventTail(m_pEventReceiver, eventloop::EventType::InstanceMessage, pMessage);
+  return m_pPackageReceiver->OnPackage(pBuffer.release(), size);
 }
 void Peer::AddRoleType(RoleType oType)
 {

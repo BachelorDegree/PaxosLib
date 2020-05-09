@@ -10,7 +10,6 @@
 #include "paxoslib/util/epoll.hpp"
 namespace paxoslib
 {
-class Message;
 };
 
 namespace paxoslib::network
@@ -29,7 +28,7 @@ public:
 
   void StartListner();
   void MakeChannelForPeer(uint16_t peer_id, const std::string &strIp, const int port);
-  void SendMessageToPeer(uint16_t peer_id, const Message &oMessage);
+  void SendMessageToPeer(uint16_t peer_id, std::unique_ptr<char[]> pBuffer, uint32_t size);
   uint16_t GetNodeId() const;
 
 private:
@@ -59,7 +58,6 @@ private:
   int m_event_fd;
   int m_listen_fd;
   uint64_t m_node_id;
-  std::thread m_listenThread;
   config::Config m_oConfig;
   util::LFQueue<Event> m_oEventQueue;
   util::EPoll m_epoll;

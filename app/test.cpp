@@ -1,9 +1,7 @@
 #include <unistd.h>
 #include <iostream>
 #include "paxoslib/proto/config.pb.h"
-#include "paxoslib/instance.hpp"
-#include "paxoslib/network.hpp"
-#include "paxoslib/persistence/storageleveldb.hpp"
+#include "paxoslib/node.hpp"
 #include "paxoslib/statemachinemgr.hpp"
 #include "kvsm.hpp"
 #include "kvclient.hpp"
@@ -36,13 +34,13 @@ int main()
   auto oConfig3 = oConfig;
   oConfig1.set_node_id(1);
   oConfig1.set_port(10001);
-  auto network1 = std::make_shared<paxoslib::network::Network>(oConfig1);
+  oConfig1.set_paxoslog_dir("/tmp/storage/node1/");
   oConfig2.set_node_id(2);
   oConfig2.set_port(10002);
-  auto network2 = std::make_shared<paxoslib::network::Network>(oConfig2);
+  oConfig2.set_paxoslog_dir("/tmp/storage/node2/");
   oConfig3.set_node_id(3);
   oConfig3.set_port(10003);
-  auto network3 = std::make_shared<paxoslib::network::Network>(oConfig3);
+  oConfig3.set_paxoslog_dir("/tmp/storage/node3/");
   //sleep(1);
   KVClient oClient1("db1");
   KVClient oClient2("db2");
@@ -50,40 +48,50 @@ int main()
   KVSM oSM1(&oClient1);
   KVSM oSM2(&oClient2);
   KVSM oSM3(&oClient3);
-  auto pMgr1 = std::make_shared<paxoslib::StateMachineMgr>();
-  auto pMgr2 = std::make_shared<paxoslib::StateMachineMgr>();
-  auto pMgr3 = std::make_shared<paxoslib::StateMachineMgr>();
-  pMgr1->AddStateMachine(&oSM1);
-  pMgr2->AddStateMachine(&oSM2);
-  pMgr3->AddStateMachine(&oSM3);
-  auto pStorage1 = std::unique_ptr<paxoslib::persistence::StorageLeveldb>(new paxoslib::persistence::StorageLeveldb{"/tmp/db1"});
-  auto pStorage2 = std::unique_ptr<paxoslib::persistence::StorageLeveldb>(new paxoslib::persistence::StorageLeveldb{"/tmp/db2"});
-  auto pStorage3 = std::unique_ptr<paxoslib::persistence::StorageLeveldb>(new paxoslib::persistence::StorageLeveldb{"/tmp/db3"});
-  paxoslib::Instance oInstance1{oConfig1, network1, std::move(pStorage1), pMgr1};
-  paxoslib::Instance oInstance2{oConfig2, network2, std::move(pStorage2), pMgr2};
-  paxoslib::Instance oInstance3{oConfig3, network3, std::move(pStorage3), pMgr3};
+  paxoslib::Node node1(oConfig1);
+  paxoslib::Node node2(oConfig2);
+  paxoslib::Node node3(oConfig3);
+
+  node1.AddStateMachine(&oSM1);
+  node2.AddStateMachine(&oSM2);
+  node3.AddStateMachine(&oSM3);
+  node1.Init();
+  node2.Init();
+  node3.Init();
   //sleep(1);
   auto iTime = time(nullptr);
   int cnt = 0;
   int i = 0;
   int oldi = 0;
-
+  // while (true)
+  // {
+  //   sleep(1);
+  //   std::cout << "start" << std::endl;
+  // }
   while (true)
   {
-    kvsm::Request oReq;
-    oReq.set_op(kvsm::Request_OpType_Put);
-    oReq.set_key(std::to_string(i++));
-    oReq.set_value(std::to_string(i++));
-    std::string strReq;
-    oReq.SerializeToString(&strReq);
-    uint64_t id;
-    auto iRet = oInstance1.Propose(strReq, id);
-    SPDLOG_INFO("Propose {} result: {}", i, iRet);
-    if (iTime != time(nullptr))
+    for (int index = 0; index < 10; index++)
     {
-      SPDLOG_ERROR("{} {} {} {}", iTime, time(nullptr), i - oldi, id);
-      oldi = i;
-      iTime = time(nullptr);
+      kvsm::Request oReq;
+      oReq.set_op(kvsm::Request_OpType_Put);
+      oReq.set_key(std::to_string(i++));
+      oReq.set_value(std::to_string(i++));
+      std::string strReq;
+      oReq.SerializeToString(&strReq);
+      uint64_t id;
+
+      auto iRet = node1.Propose(index, strReq, id);
+      SPDLOG_INFO("Propose {} result: {}", i, iRet);
+      if (iTime != time(nullptr))
+      {
+        SPDLOG_ERROR("{} {} {} {}", iTime, time(nullptr), i - oldi, id);
+        oldi = i;
+        iTime = time(nullptr);
+      }
     }
+  }
+  while (true)
+  {
+    sleep(1);
   }
 }

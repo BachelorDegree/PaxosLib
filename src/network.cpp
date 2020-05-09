@@ -5,7 +5,7 @@
 #include <atomic>
 #include <chrono>
 #include <spdlog/spdlog.h>
-#include "paxoslib/proto/message.pb.h"
+#include <sys/prctl.h>
 #include "paxoslib/proto/config.pb.h"
 #include "paxoslib/network.hpp"
 #include "paxoslib/channel.hpp"
@@ -38,8 +38,10 @@ Network::Network(const config::Config &oConfig) : m_epoll(1024)
   m_epoll.WatchReadable(m_event_fd);
   StartListner();
   auto thread = std::thread([&]() {
+    prctl(PR_SET_NAME, "network");
     this->NetworkEventLoop();
   });
+  std::cout << "network thread id " << thread.get_id() << std::endl;
   thread.detach();
 }
 std::shared_ptr<Peer> Network::GetPeerById(uint16_t peer_id)
@@ -78,14 +80,11 @@ std::shared_ptr<Channel> Network::GetChannelByFd(int fd)
   }
   return {};
 }
-void Network::SendMessageToPeer(uint16_t peer_id, const Message &oMessage)
+void Network::SendMessageToPeer(uint16_t peer_id, std::unique_ptr<char[]> pBuffer, uint32_t size)
 {
   if (auto pChannel = GetChannelByPeerId(peer_id))
   {
-    uint32_t size = oMessage.ByteSizeLong();
-    char *pBuffer = new char[size];
-    oMessage.SerializeToArray(pBuffer, size);
-    pChannel->EnqueueSendMessage(std::unique_ptr<char[]>(pBuffer), size);
+    pChannel->EnqueueSendMessage(std::move(pBuffer), size);
     Event oEvent;
     oEvent.type = EventType::ChannelEnqueueMessage;
     oEvent.fd = pChannel->GetFd();
@@ -100,9 +99,7 @@ void Network::OnReceivePeerMessage(uint16_t peer_id, std::unique_ptr<char[]> pBu
 {
   if (auto pPeer = GetPeerById(peer_id))
   {
-    Message oMessage;
-    oMessage.ParseFromArray(pBuffer.get(), size);
-    pPeer->EnqueueReceiveMessage(oMessage);
+    pPeer->EnqueueReceiveMessage(std::move(pBuffer), size);
   }
   else
   {

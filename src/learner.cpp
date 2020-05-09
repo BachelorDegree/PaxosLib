@@ -167,7 +167,7 @@ int Learner::AskForInstanceID()
   oNewMessage.set_instance_id(GetInstanceID());
   oNewMessage.mutable_ask_for_instance_id()->set_my_instance_id(GetInstanceID());
   this->Broadcast(BORADCAST_RECEIVER_TYPE_LEARNER, BROAD_CAST_TYPE_ALL, oNewMessage);
-  m_pInstance->AddTimeout(10000, eventloop::EventType::LearnerAskForInstanceIdLoop, 0);
+  m_pInstance->AddTimeout(10000 + 100 * m_pInstance->GetGroupIndex(), eventloop::EventType::LearnerAskForInstanceIdLoop, 0);
   return 0;
 }
 void Learner::OnSeenOthersInstanceID(uint16_t node_id, uint64_t instance_id)
