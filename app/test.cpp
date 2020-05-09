@@ -1,15 +1,17 @@
 #include <unistd.h>
 #include <iostream>
+#include <atomic>
+#include <sys/prctl.h>
+
 #include "paxoslib/proto/config.pb.h"
 #include "paxoslib/node.hpp"
 #include "paxoslib/statemachinemgr.hpp"
 #include "kvsm.hpp"
 #include "kvclient.hpp"
-void MakeInstance(paxoslib::config::Config oConfig)
-{
-}
+std::atomic<uint64_t> g_cnt{0};
 int main()
 {
+  prctl(PR_SET_NAME, "t_main");
   paxoslib::config::Config oConfig;
   {
     auto pPeer = oConfig.add_peers();
@@ -62,36 +64,37 @@ int main()
   auto iTime = time(nullptr);
   int cnt = 0;
   int i = 0;
-  int oldi = 0;
+  uint64_t oldcnt = 0;
   // while (true)
   // {
   //   sleep(1);
   //   std::cout << "start" << std::endl;
   // }
-  while (true)
-  {
-    for (int index = 0; index < 10; index++)
-    {
-      kvsm::Request oReq;
-      oReq.set_op(kvsm::Request_OpType_Put);
-      oReq.set_key(std::to_string(i++));
-      oReq.set_value(std::to_string(i++));
-      std::string strReq;
-      oReq.SerializeToString(&strReq);
-      uint64_t id;
 
-      auto iRet = node1.Propose(index, strReq, id);
-      SPDLOG_INFO("Propose {} result: {}", i, iRet);
-      if (iTime != time(nullptr))
+  for (int index = 0; index < 2; index++)
+  {
+    auto thread = std::thread([&, index]() -> void {
+      while (true)
       {
-        SPDLOG_ERROR("{} {} {} {}", iTime, time(nullptr), i - oldi, id);
-        oldi = i;
-        iTime = time(nullptr);
+        kvsm::Request oReq;
+        oReq.set_op(kvsm::Request_OpType_Put);
+        oReq.set_key(std::to_string(i++));
+        oReq.set_value(std::to_string(i++));
+        std::string strReq;
+        oReq.SerializeToString(&strReq);
+        uint64_t id;
+
+        auto iRet = node1.Propose(index, strReq, id);
+        SPDLOG_INFO("Propose {} result: {}", i, iRet);
+        g_cnt++;
       }
-    }
+    });
+    thread.detach();
   }
   while (true)
   {
     sleep(1);
+    SPDLOG_ERROR("run {}", g_cnt - oldcnt);
+    oldcnt = g_cnt;
   }
 }

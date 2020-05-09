@@ -1,5 +1,6 @@
 #pragma once
-#include <atomic>
+#include <boost/lockfree/queue.hpp>
+#include <boost/lockfree/policies.hpp>
 namespace paxoslib
 {
 namespace util
@@ -8,65 +9,40 @@ template <class T>
 class LFQueue
 {
 public:
-  LFQueue()
+  LFQueue() : m_queue(1024)
   {
-    Node *pNode = new Node;
-    pNode->next = nullptr;
-    m_pHead = pNode;
-    m_pTail = pNode;
   }
   void push_back(const T &oItem)
   {
-    Node *pNode = new Node{
-        .value = oItem};
-    pNode->next = nullptr;
-    Node *pCurTail;
-    Node *pCurTailNextExpected;
-    do
-    {
-      pCurTail = m_pTail.load();
-      pCurTailNextExpected = nullptr;
-    } while (!std::atomic_compare_exchange_weak(&pCurTail->next, &pCurTailNextExpected, pNode));
-    std::atomic_compare_exchange_weak(&m_pTail, &pCurTail, pNode);
+    Node oNode;
+    oNode.value = new T{oItem};
+    m_queue.push(oNode);
   }
   void push_back(T &&oItem)
   {
-    Node *pNode = new Node{
-        .value = std::move(oItem)};
-    pNode->next = nullptr;
-    Node *pCurTail;
-    Node *pCurTailNextExpected;
-    do
-    {
-      pCurTail = m_pTail.load();
-      pCurTailNextExpected = nullptr;
-    } while (!std::atomic_compare_exchange_weak(&pCurTail->next, &pCurTailNextExpected, pNode));
-    std::atomic_compare_exchange_weak(&m_pTail, &pCurTail, pNode);
+    Node oNode;
+    oNode.value = new T{std::move(oItem)};
+    m_queue.push(oNode);
   }
   bool pop_front(T &oItem)
   {
-    Node *pNode;
-    do
+    Node oNode;
+    bool bRet = m_queue.pop(oNode);
+    if (!bRet)
     {
-      pNode = m_pHead.load();
-      if (pNode->next == nullptr)
-      {
-        return false;
-      }
-    } while (!std::atomic_compare_exchange_weak(&m_pHead, &pNode, pNode->next));
-    oItem = std::move(pNode->next.load()->value);
-    delete pNode;
+      return false;
+    }
+    oItem = std::move(*oNode.value);
+    delete oNode.value;
     return true;
   }
 
 private:
   struct Node
   {
-    T value;
-    std::atomic<Node *> next;
+    T *value;
   };
-  std::atomic<Node *> m_pHead;
-  std::atomic<Node *> m_pTail;
+  boost::lockfree::queue<Node> m_queue;
 };
 }; // namespace util
 

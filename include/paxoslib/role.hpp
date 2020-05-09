@@ -1,7 +1,6 @@
 #pragma once
 #include <vector>
 #include <set>
-#include <mutex>
 #include "paxoslib/peer.hpp"
 #include "paxoslib/proto/network.pb.h"
 #include "paxoslib/proto/message.pb.h"
@@ -28,7 +27,6 @@ protected:
   InstanceImpl *m_pInstance;
 
 private:
-  std::mutex m_oMessageMutex;
   uint64_t m_ddwInstranceID;
 };
 }; // namespace role

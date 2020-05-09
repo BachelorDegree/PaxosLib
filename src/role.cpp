@@ -17,7 +17,7 @@ void Role::Broadcast(BroadcastReceiverType oReceiverType, BroadcastType oBroadca
   oNewMessage.set_from_node_id(this->m_pInstance->GetNodeId());
   oNewMessage.set_group_index(this->m_pInstance->GetGroupIndex());
   SPDLOG_DEBUG("Broadcast {}", oNewMessage.ShortDebugString());
-  const std::map<BroadcastReceiverType, std::set<RoleType>> mapReceiver{
+  const static std::map<BroadcastReceiverType, std::set<RoleType>> mapReceiver{
       {BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_ACCEPTER, {RoleType::ROLE_TYPE_ACCEPTER}}, {BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_PROPOSER, {RoleType::ROLE_TYPE_PROPOSER}}, {BroadcastReceiverType::BORADCAST_RECEIVER_TYPE_LEARNER, {RoleType::ROLE_TYPE_LEARNER}}};
   uint64_t mask = 0;
   for (auto a : mapReceiver.at(oReceiverType))
