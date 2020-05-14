@@ -29,6 +29,11 @@ namespace paxoslib::network
 {
 Network::Network(const config::Config &oConfig) : m_epoll(1024)
 {
+  m_pPeerChannelLastConnectTime = new std::atomic<uint32_t>[UINT16_MAX + 1];
+  for (int i = 0; i < UINT16_MAX; i++)
+  {
+    m_pPeerChannelLastConnectTime[i] = 0;
+  }
   m_pVecChannel = std::make_shared<std::vector<std::shared_ptr<Channel>>>();
   m_pVecPeer = std::make_shared<std::vector<std::shared_ptr<Peer>>>();
   m_node_id = oConfig.node_id();
@@ -42,6 +47,10 @@ Network::Network(const config::Config &oConfig) : m_epoll(1024)
   });
   std::cout << "network thread id " << thread.get_id() << std::endl;
   thread.detach();
+}
+Network::~Network()
+{
+  delete[] m_pPeerChannelLastConnectTime;
 }
 std::shared_ptr<Peer> Network::GetPeerById(uint16_t peer_id)
 {
@@ -79,6 +88,19 @@ std::shared_ptr<Channel> Network::GetChannelByFd(int fd)
   }
   return {};
 }
+uint32_t Network::CountPeerChannel(uint16_t peer_id)
+{
+  uint32_t cnt = 0;
+  auto pVecChannel = std::atomic_load(&m_pVecChannel);
+  for (auto pChannel : *pVecChannel)
+  {
+    if (pChannel->GetPeerId() == peer_id)
+    {
+      cnt++;
+    }
+  }
+  return cnt;
+}
 void Network::SendMessageToPeer(uint16_t peer_id, std::unique_ptr<char[]> pBuffer, uint32_t size)
 {
   if (auto pChannel = GetChannelByPeerId(peer_id))
@@ -88,6 +110,18 @@ void Network::SendMessageToPeer(uint16_t peer_id, std::unique_ptr<char[]> pBuffe
     oEvent.type = EventType::ChannelEnqueueMessage;
     oEvent.fd = pChannel->GetFd();
     EnqueueEvent(oEvent, true);
+  }
+  else
+  {
+    if (this->m_pPeerChannelLastConnectTime[peer_id] <= time(nullptr) - 2)
+    {
+      this->m_pPeerChannelLastConnectTime[peer_id] = time(nullptr);
+      Event oEvent;
+      oEvent.type = EventType::MakePeerChannel;
+      oEvent.time = GetSteadyClockMS();
+      oEvent.peer_id = peer_id;
+      this->EnqueueEvent(oEvent, true);
+    }
   }
 }
 uint16_t Network::GetNodeId() const
@@ -120,6 +154,22 @@ void Network::AddChannel(std::shared_ptr<Channel> pChannel)
   std::atomic_store(&m_pVecChannel, pNewVec);
   SPDLOG_DEBUG("Channel add for {}", pChannel->GetPeerId());
 }
+void Network::RemoveChannel(Channel *pChannel)
+{
+  std::lock_guard<std::mutex> oGuard{m_mutexVecChannel};
+  auto pNewVec = std::make_shared<std::vector<std::shared_ptr<Channel>>>(*std::atomic_load(&m_pVecChannel));
+  for (auto it = pNewVec->begin(); it != pNewVec->end(); it++)
+  {
+    if (it->get() == pChannel)
+    {
+      it = pNewVec->erase(it);
+      break;
+    }
+  }
+
+  std::atomic_store(&m_pVecChannel, pNewVec);
+  SPDLOG_DEBUG("Channel removed");
+}
 void Network::StartListner()
 {
   this->m_listen_fd = socket(AF_INET, SOCK_STREAM, 0);
@@ -148,6 +198,7 @@ void Network::MakeChannelForPeer(uint16_t peer_id, const std::string &strIp, con
   int iRet = connect(fd, (struct sockaddr *)&addr, sizeof(addr));
   if (iRet != 0)
   {
+    close(fd);
     return;
   }
   int val = 1;
@@ -232,6 +283,17 @@ void Network::NetworkEventLoop()
     {
       switch (oEvent.type)
       {
+      case EventType::MakePeerChannel:
+      {
+        if (CountPeerChannel(oEvent.peer_id) == 0)
+        {
+          if (auto pPeer = this->GetPeerById(oEvent.peer_id))
+          {
+            this->MakeChannelForPeer(oEvent.peer_id, pPeer->GetIp(), pPeer->GetPort());
+          }
+        }
+        break;
+      }
       case EventType::PeerConnect:
       {
         sockaddr_in client_addr;

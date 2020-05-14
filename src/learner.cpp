@@ -83,6 +83,10 @@ int Learner::OnAskForLearn(const Message &oMessage)
       SPDLOG_DEBUG("Size limit exceed. skip");
       break;
     }
+    if (pStates->size() > 50)
+    {
+      break;
+    }
     auto oStateProto = oState.GetState();
     oStateProto.set_id(id);
     pStates->Add()->CopyFrom(oStateProto);

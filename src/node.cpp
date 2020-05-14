@@ -35,7 +35,7 @@ int NodeImpl::Init()
   {
     if (oPeer.id() != m_oConfig.node_id())
     {
-      auto pPeer = std::make_shared<network::Peer>(oPeer.id(), this, m_pNetwork);
+      auto pPeer = std::make_shared<network::Peer>(oPeer.id(), this, m_pNetwork, oPeer.ip(), oPeer.port());
       pPeer->AddRoleType(RoleType::ROLE_TYPE_ACCEPTER);
       pPeer->AddRoleType(RoleType::ROLE_TYPE_PROPOSER);
       pPeer->AddRoleType(RoleType::ROLE_TYPE_LEARNER);
@@ -44,7 +44,7 @@ int NodeImpl::Init()
       m_vecPeers.push_back(pPeer);
     }
   }
-  auto pPeer = std::make_shared<network::Peer>(m_ddwNodeId, this, m_pNetwork);
+  auto pPeer = std::make_shared<network::Peer>(m_ddwNodeId, this, m_pNetwork, "", 0);
   pPeer->AddRoleType(RoleType::ROLE_TYPE_ACCEPTER);
   pPeer->AddRoleType(RoleType::ROLE_TYPE_PROPOSER);
   pPeer->AddRoleType(RoleType::ROLE_TYPE_LEARNER);

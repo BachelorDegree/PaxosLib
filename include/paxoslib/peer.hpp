@@ -24,7 +24,7 @@ public:
   {
     Message message;
   };
-  Peer(uint16_t peer_id, network::PackageReceiver *pPackageReceiver, std::shared_ptr<Network> pNetwork);
+  Peer(uint16_t peer_id, network::PackageReceiver *pPackageReceiver, std::shared_ptr<Network> pNetwork, const std::string &strIp, const int port);
   uint32_t GetPeerID() const;
   const std::set<RoleType> &GetRoleTypes() const;
   void AddRoleType(RoleType);
@@ -32,12 +32,16 @@ public:
   void ReceiveEventWorker();
   void SendMessage(const Message &oMessage);
   int EnqueueReceiveMessage(std::unique_ptr<char[]> pBuffer, uint32_t size);
+  std::string GetIp() const;
+  int GetPort() const;
 
 private:
   uint16_t m_peer_id;
   std::set<RoleType> m_setRoleTypes;
   network::PackageReceiver *m_pPackageReceiver;
   std::shared_ptr<Network> m_pNetwork;
+  std::string m_strIp;
+  int m_iPort;
 };
 
 }; // namespace paxoslib::network

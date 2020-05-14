@@ -69,7 +69,12 @@ void ChannelStream::OnReadable()
     case 3:
     {
 
-      ssize_t size = recv(m_fd, &m_ReceiveState.size + m_ReceiveState.state, 4 - m_ReceiveState.state, MSG_DONTWAIT);
+      ssize_t size = recv(m_fd, &m_ReceiveState.size + m_ReceiveState.state, 4 - m_ReceiveState.state, MSG_DONTWAIT | MSG_NOSIGNAL);
+      if (size == -1 && errno != EAGAIN)
+      {
+        this->OnDisconnect();
+        return;
+      }
       if (size <= 0)
       {
         return;
@@ -93,7 +98,12 @@ void ChannelStream::OnReadable()
       {
         to_read = m_ReceiveState.size - m_ReceiveState.read;
       }
-      ssize_t size = recv(m_fd, m_ReceiveState.pBuffer.get() + m_ReceiveState.read, to_read, MSG_DONTWAIT);
+      ssize_t size = recv(m_fd, m_ReceiveState.pBuffer.get() + m_ReceiveState.read, to_read, MSG_DONTWAIT | MSG_NOSIGNAL);
+      if (size == -1 && errno != EAGAIN)
+      {
+        this->OnDisconnect();
+        return;
+      }
       if (size <= 0)
       {
         return;
@@ -120,6 +130,11 @@ void ChannelStream::OnReadable()
 
 void ChannelStream::OnDisconnect()
 {
+  SPDLOG_ERROR("broken channel of peer {}", this->GetPeerId());
+  if (auto pNetwork = this->m_pNetwork.lock())
+  {
+    pNetwork->RemoveChannel(this);
+  }
 }
 void ChannelStream::OnWritableOrTaskArrive()
 {
@@ -147,7 +162,12 @@ void ChannelStream::OnWritableOrTaskArrive()
     case 4:
     {
       uint32_t n_size = htonl(m_SendState.size);
-      ssize_t size = send(m_fd, &n_size + m_SendState.state - 1, 4 - m_SendState.state + 1, MSG_DONTWAIT | MSG_MORE);
+      ssize_t size = send(m_fd, &n_size + m_SendState.state - 1, 4 - m_SendState.state + 1, MSG_DONTWAIT | MSG_MORE | MSG_NOSIGNAL);
+      if (size == -1 && errno != EAGAIN)
+      {
+        this->OnDisconnect();
+        return;
+      }
       if (size <= 0)
       {
         return;
@@ -162,7 +182,12 @@ void ChannelStream::OnWritableOrTaskArrive()
       {
         to_write = m_SendState.size - m_SendState.write;
       }
-      ssize_t size = send(m_fd, m_SendState.pBuffer.get() + m_SendState.write, to_write, MSG_DONTWAIT);
+      ssize_t size = send(m_fd, m_SendState.pBuffer.get() + m_SendState.write, to_write, MSG_DONTWAIT | MSG_NOSIGNAL);
+      if (size == -1 && errno != EAGAIN)
+      {
+        this->OnDisconnect();
+        return;
+      }
       if (size <= 0)
       {
         return;
@@ -199,7 +224,12 @@ void ChannelIncoming::OnReadable()
     case 0:
     case 1:
     {
-      ssize_t size = recv(m_fd, &m_peer_id + m_iPrepareState, 2 - m_iPrepareState, MSG_DONTWAIT);
+      ssize_t size = recv(m_fd, &m_peer_id + m_iPrepareState, 2 - m_iPrepareState, MSG_DONTWAIT | MSG_NOSIGNAL);
+      if (size == -1 && errno != EAGAIN)
+      {
+        this->OnDisconnect();
+        return;
+      }
       if (size <= 0)
       {
         return;
@@ -245,7 +275,12 @@ void ChannelOutgoing::OnWritableOrTaskArrive()
     case 1:
     {
       uint16_t peer_id_n = htons(m_my_id);
-      ssize_t size = send(m_fd, &peer_id_n + m_iPrepareState, 2 - m_iPrepareState, MSG_DONTWAIT);
+      ssize_t size = send(m_fd, &peer_id_n + m_iPrepareState, 2 - m_iPrepareState, MSG_DONTWAIT | MSG_NOSIGNAL);
+      if (size == -1 && errno != EAGAIN)
+      {
+        this->OnDisconnect();
+        return;
+      }
       if (size <= 0)
       {
         return;

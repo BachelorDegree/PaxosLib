@@ -6,11 +6,13 @@
 #include "paxoslib/eventloop/eventtype.hpp"
 namespace paxoslib::network
 {
-Peer::Peer(uint16_t peer_id, network::PackageReceiver *pPackageReceiver, std::shared_ptr<Network> pNetwork)
+Peer::Peer(uint16_t peer_id, network::PackageReceiver *pPackageReceiver, std::shared_ptr<Network> pNetwork, const std::string &strIp, const int port)
 {
   m_pPackageReceiver = pPackageReceiver;
   m_peer_id = peer_id;
   m_pNetwork = pNetwork;
+  m_strIp = strIp;
+  m_iPort = port;
 }
 uint32_t Peer::GetPeerID() const
 {
@@ -19,6 +21,14 @@ uint32_t Peer::GetPeerID() const
 const std::set<RoleType> &Peer::GetRoleTypes() const
 {
   return m_setRoleTypes;
+}
+std::string Peer::GetIp() const
+{
+  return m_strIp;
+}
+int Peer::GetPort() const
+{
+  return m_iPort;
 }
 uint64_t Peer::GetRoleTypesMask() const
 {

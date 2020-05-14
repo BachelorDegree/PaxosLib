@@ -4,6 +4,7 @@
 #include <string>
 #include <leveldb/db.h>
 #include <leveldb/comparator.h>
+#include <spdlog/spdlog.h>
 #include <assert.h>
 #include "paxoslib/proto/common.pb.h"
 #include "paxoslib/persistence/storageleveldb.hpp"
@@ -25,6 +26,10 @@ StorageLeveldb::StorageLeveldb(const std::string &strPath)
   options.create_if_missing = true;
   options.comparator = &oCmp;
   leveldb::Status status = leveldb::DB::Open(options, strPath, &db);
+  if (status.ok() == false)
+  {
+    SPDLOG_ERROR("Open Paxos Storage DB failed. path: {}", strPath);
+  }
   assert(status.ok());
 }
 int StorageLeveldb::LoadState(uint64_t id, paxoslib::StateProto &oState) const
